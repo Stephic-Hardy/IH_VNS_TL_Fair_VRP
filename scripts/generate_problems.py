@@ -71,7 +71,7 @@ def main():
             "max_distance": 1000000,
             "distance_matrix": dist_matrix,
             "time_matrix": [dist_matrix * 14], 
-            "point_scores": [100] * (len(coords_list) - 1),
+            "point_scores": [1000] * (len(coords_list) - 1),
             "point_service_times": [300] * (len(coords_list) - 1)
         }
 
