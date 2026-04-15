@@ -36,6 +36,7 @@ set(SOURCES
     src/vns_tabu.cpp
     src/json_parser.cpp
     src/problem_arguments.cpp
+    src/post_processing.cpp
 )
 
 # Create executable

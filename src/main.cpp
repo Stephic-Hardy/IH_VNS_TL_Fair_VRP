@@ -14,6 +14,8 @@
 #include <algorithm>
 #include <iomanip>
 
+#include "post_processing.h"
+
 void print_gini_distance(const std::vector<Solution>& solutions) {
     if (solutions.empty()) {
         std::cout << "\nНет данных для анализа." << std::endl;
@@ -49,34 +51,6 @@ void print_gini_distance(const std::vector<Solution>& solutions) {
     std::cout << "Коэффициент Джини:   " << std::setprecision(4) << gini << std::endl;
 
 
-}
-
-
-Tour run_final_2opt(const Tour& initial_tour, const InputData& input_data, const std::vector<int>& new1_to_old0) {
-    Tour best_tour = initial_tour.copy();
-    bool improved = true;
-    double best_cost = best_tour.compute_cost(input_data, new1_to_old0);
-    size_t n = best_tour.vertices.size();
-
-    while (improved) {
-        improved = false;
-        for (size_t i = 1; i < n - 1; ++i) {
-            for (size_t j = i + 1; j < n; ++j) {
-                Tour neighbor = best_tour.copy();
-                // Разворачиваем участок между i и j
-                std::reverse(neighbor.vertices.begin() + i, neighbor.vertices.begin() + j + 1);
-                neighbor.invalidate_cache();
-                
-                double current_cost = neighbor.compute_cost(input_data, new1_to_old0);
-                if (current_cost < best_cost - 1e-7) {
-                    best_cost = current_cost;
-                    best_tour = neighbor;
-                    improved = true;
-                }
-            }
-        }
-    }
-    return best_tour;
 }
 
 int main(int argc, char* argv[]) {
@@ -148,8 +122,8 @@ int main(int argc, char* argv[]) {
             sub_n, input_data, new1_to_old0, ST, AON, max_iter, time_limit, initial_tour
         );
 
-        // 6. ФИНАЛЬНЫЙ 2-OPT (убирает пересечения и "паутину")
-        Tour polished_tour = run_final_2opt(best_vns_tour, input_data, new1_to_old0);
+        // 6. Post-processing пути
+        Tour polished_tour = post_process(best_vns_tour, input_data, new1_to_old0);
 
         // 7. Сохранение результата и обновление состояния
         Solution sol;

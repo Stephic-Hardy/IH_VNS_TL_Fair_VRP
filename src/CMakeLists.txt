@@ -26,6 +26,7 @@ set(SOURCES
     vns_tabu.cpp
     json_parser.cpp
     problem_arguments.cpp
+    post_processing.cpp
 )
 
 # Create executable
