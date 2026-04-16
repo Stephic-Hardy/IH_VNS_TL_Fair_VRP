@@ -1,3 +1,0 @@
-/home/pashafeodorov/Yandex_project/IH_VNS_TL_Fair_VRP/build/CMakeFiles/tdtsp_solver.dir
-/home/pashafeodorov/Yandex_project/IH_VNS_TL_Fair_VRP/build/CMakeFiles/edit_cache.dir
-/home/pashafeodorov/Yandex_project/IH_VNS_TL_Fair_VRP/build/CMakeFiles/rebuild_cache.dir
