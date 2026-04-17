@@ -25,12 +25,11 @@ std::string VNSTabu::hash_2opt(int i, int j) {
     return ss.str();
 }
 
-Tour VNSTabu::vns_without_tabu(const Tour& start_tour, const InputData& input_data, 
-                              const std::vector<int>& new1_to_old0, int max_iter) {
+Tour VNSTabu::vns_without_tabu(const Tour& start_tour, const InputData& input_data, int max_iter) {
     Tour best = start_tour.copy();
-    double best_cost = best.compute_cost(input_data, new1_to_old0);
-    double best_value = best.compute_value(input_data, new1_to_old0);
-    double best_distance = best.compute_distance(input_data, new1_to_old0);
+    double best_cost = best.compute_cost(input_data);
+    double best_value = best.compute_value(input_data);
+    double best_distance = best.compute_distance(input_data);
 
     Tour current = best.copy();
 
@@ -40,13 +39,13 @@ Tour VNSTabu::vns_without_tabu(const Tour& start_tour, const InputData& input_da
        
         for (int k = 0; k < 6; ++k) {
             NeighborhoodType type = static_cast<NeighborhoodType>(k);
-            auto [neighbor, neighbor_cost] = Neighborhoods::find_best_neighbor(current, type, input_data, new1_to_old0, 5);
-            double neighbor_value = neighbor.compute_value(input_data, new1_to_old0);
-            double neighbor_distance = neighbor.compute_distance(input_data, new1_to_old0);
+            auto [neighbor, neighbor_cost] = Neighborhoods::find_best_neighbor(current, type, input_data, 5);
+            double neighbor_value = neighbor.compute_value(input_data);
+            double neighbor_distance = neighbor.compute_distance(input_data);
             
-            double current_cost = current.compute_cost(input_data, new1_to_old0);
-            double current_value = current.compute_value(input_data, new1_to_old0);
-            double current_distance = current.compute_distance(input_data, new1_to_old0);
+            double current_cost = current.compute_cost(input_data);
+            double current_value = current.compute_value(input_data);
+            double current_distance = current.compute_distance(input_data);
             
             // Сравнение: Value -> время -> расстояние
             if (neighbor_value > best_value + 1e-9 || 
@@ -76,9 +75,7 @@ Tour VNSTabu::vns_without_tabu(const Tour& start_tour, const InputData& input_da
 }
 
 
-std::pair<Tour, double> VNSTabu::vns_tabu_advanced(int n, 
-                                                  const InputData& input_data,
-                                                  const std::vector<int>& new1_to_old0,
+std::pair<Tour, double> VNSTabu::vns_tabu_advanced(const InputData& input_data,
                                                   double ST,
                                                   int AON,
                                                   int max_iterations_without_improve,
@@ -94,10 +91,17 @@ std::pair<Tour, double> VNSTabu::vns_tabu_advanced(int n,
               << ", TimeLimit=" << time_limit << "s" << std::endl;
     std::cout << "=================================================================" << std::endl;
 
+    std::vector<int> agent_subset;
+    for (int v : initial_tour.vertices) {
+        if (v != 0) {
+            agent_subset.push_back(v);
+        }
+    }
+
     Tour best_global = initial_tour.copy();
-    double best_global_cost = best_global.compute_cost(input_data, new1_to_old0);
-    double best_global_value = best_global.compute_value(input_data, new1_to_old0);
-    double best_global_distance = best_global.compute_distance(input_data, new1_to_old0);
+    double best_global_cost = best_global.compute_cost(input_data);
+    double best_global_value = best_global.compute_value(input_data);
+    double best_global_distance = best_global.compute_distance(input_data);
     Tour current = best_global.copy();
 
     tabu_list_moves.clear();
@@ -130,9 +134,9 @@ std::pair<Tour, double> VNSTabu::vns_tabu_advanced(int n,
         for (int k = 0; k < 6; ++k) {
             NeighborhoodType type = static_cast<NeighborhoodType>(k);
             
-            auto [neighbor, neighbor_cost] = Neighborhoods::find_best_neighbor(current, type, input_data, new1_to_old0, 5);
-            double neighbor_value = neighbor.compute_value(input_data, new1_to_old0);
-            double neighbor_distance = neighbor.compute_distance(input_data, new1_to_old0);
+            auto [neighbor, neighbor_cost] = Neighborhoods::find_best_neighbor(current, type, input_data, 5);
+            double neighbor_value = neighbor.compute_value(input_data);
+            double neighbor_distance = neighbor.compute_distance(input_data);
 
             bool in_tabu = false;
             std::string move_hash;
@@ -180,9 +184,9 @@ std::pair<Tour, double> VNSTabu::vns_tabu_advanced(int n,
                     continue;
                 }
             } else if (!in_tabu) {
-                double current_value = current.compute_value(input_data, new1_to_old0);
-                double current_cost = current.compute_cost(input_data, new1_to_old0);
-                double current_distance = current.compute_distance(input_data, new1_to_old0);
+                double current_value = current.compute_value(input_data);
+                double current_cost = current.compute_cost(input_data);
+                double current_distance = current.compute_distance(input_data);
                 
                 // Новый порядок оптимизации: Value -> время -> расстояние
                 if ((neighbor_value > current_value + 1e-9 || 
@@ -210,8 +214,8 @@ std::pair<Tour, double> VNSTabu::vns_tabu_advanced(int n,
             }
         }
 
-        double current_cost = current.compute_cost(input_data, new1_to_old0);
-        double current_value = current.compute_value(input_data, new1_to_old0);
+        double current_cost = current.compute_cost(input_data);
+        double current_value = current.compute_value(input_data);
         double threshold_value = best_global_value * (1.0 - ST); // Для value улучшение это увеличение, поэтому threshold ниже
         
         if (!improved_in_neighborhood) {
@@ -219,18 +223,18 @@ std::pair<Tour, double> VNSTabu::vns_tabu_advanced(int n,
                 LT.push_back(current.copy());
             }
             
-            current = InsertionHeuristic::build_initial_tour(n, input_data, new1_to_old0);
+            current = InsertionHeuristic::BuildInitialTour(agent_subset, input_data);
         }
 
         if (LT.size() >= static_cast<size_t>(AON)) {
             std::vector<Tour> LT_VNS;
             for (size_t i = 0; i < LT.size(); ++i) {
-                Tour improved = vns_without_tabu(LT[i], input_data, new1_to_old0, 50);
+                Tour improved = vns_without_tabu(LT[i], input_data, 50);
                 LT_VNS.push_back(improved);
                 
-                double improved_cost = improved.compute_cost(input_data, new1_to_old0);
-                double improved_value = improved.compute_value(input_data, new1_to_old0);
-                double improved_distance = improved.compute_distance(input_data, new1_to_old0);
+                double improved_cost = improved.compute_cost(input_data);
+                double improved_value = improved.compute_value(input_data);
+                double improved_distance = improved.compute_distance(input_data);
 
                 // Новый порядок оптимизации: Value -> время -> расстояние
                 if ((improved_value > best_global_value + 1e-9 || 
@@ -261,10 +265,10 @@ std::pair<Tour, double> VNSTabu::vns_tabu_advanced(int n,
             std::mt19937 gen(rd());
             std::uniform_int_distribution<size_t> dist(0, LT_VNS.size() - 1);
             LT.clear();
-            current = InsertionHeuristic::build_initial_tour(n, input_data, new1_to_old0);
-            double new_cost = current.compute_cost(input_data, new1_to_old0);
-            double new_value = current.compute_value(input_data, new1_to_old0);
-            double new_distance = current.compute_distance(input_data, new1_to_old0);
+            current = InsertionHeuristic::BuildInitialTour(agent_subset, input_data);
+            double new_cost = current.compute_cost(input_data);
+            double new_value = current.compute_value(input_data);
+            double new_distance = current.compute_distance(input_data);
 
             if ((new_value > best_global_value + 1e-9 || 
                 (std::abs(new_value - best_global_value) < 1e-9 && new_cost < best_global_cost - 1e-9) ||

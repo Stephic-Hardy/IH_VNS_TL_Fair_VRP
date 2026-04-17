@@ -2,21 +2,17 @@
 #include <vector>
 #include <algorithm>
 #include <string>
-#include <map>
 #include <fstream>
+#include <numeric>
+#include <iomanip>
 
 #include "tour.h"
 #include "vns_tabu.h"
 #include "../utils/json_parser.hpp"
-#include "data_adapter.h"
-#include "first_step.hpp"
-#include <numeric>
-#include <algorithm>
-#include <iomanip>
-
 #include "post_processing.h"
+#include "first_step.hpp"
 
-void print_gini_distance(const std::vector<Solution>& solutions) {
+void PrintGiniDistance(const std::vector<Solution>& solutions) {
     if (solutions.empty()) {
         std::cout << "\nНет данных для анализа." << std::endl;
         return;
@@ -74,80 +70,55 @@ int main(int argc, char* argv[]) {
     }
 
     std::vector<bool> excluded_points(input_data.points_count, false);
-    int remaining_points = input_data.points_count - 1; // исключая депо
+    size_t remaining_points = input_data.points_count - 1; // исключая депо
 
     std::cout << "Starting multi-agent solver for " << remaining_points << " points..." << std::endl;
 
     RoutePack routes;
 
     while (remaining_points >= input_data.min_load) {
-        // 1. Получаем начальное подмножество точек через DP (FirstStep)
-        // Передаем excluded_points, чтобы не брать уже посещенные точки
+        // Find subset of points for a new route
         FirstStepAnswer fs_ans = DoFirstStep<true>(input_data, excluded_points);
         
         if (fs_ans.vertexes.size() < static_cast<size_t>(input_data.min_load)) {
             break; // Больше не можем собрать валидный маршрут
         }
 
-        // 2. Подготовка уникальных точек (чистим от лишних нулей FirstStep)
+        // Remove zeroes from the found subset
         std::vector<int> subset_to_visit;
+        subset_to_visit.reserve(fs_ans.vertexes.size());
         for (int v : fs_ans.vertexes) {
             if (v != 0) {
                 subset_to_visit.push_back(v);
             }
         }
 
-        // 3. Создаем маппинг индексов (Депо всегда 1 в локальной нумерации)
-        size_t sub_n = subset_to_visit.size() + 1;
-        std::vector<int> new1_to_old0(sub_n + 1);
-        std::map<int, int> old0_to_new1;
-
-        new1_to_old0[1] = 0; 
-        old0_to_new1[0] = 1;
-        for (size_t i = 0; i < subset_to_visit.size(); ++i) {
-            int old_v = subset_to_visit[i];
-            new1_to_old0[i + 2] = old_v;
-            old0_to_new1[old_v] = i + 2;
-        }
-
         // Construct initial route
-        Tour initial_tour(sub_n);
-        initial_tour.vertices.clear();
-        initial_tour.vertices.push_back(1); // Депо
+        Tour initial_tour(1);
         for (int v : subset_to_visit) {
-            initial_tour.vertices.push_back(old0_to_new1[v]);
+            initial_tour.vertices.push_back(v);
         }
 
         // Run the Variable Neighborhood Search Algorithm
         std::cout << "Agent " << routes.routes.size() << ": optimizing " << subset_to_visit.size() << " points..." << std::endl;
         auto [best_vns_tour, _] = VNSTabu::vns_tabu_advanced(
-            sub_n, input_data, new1_to_old0, ST, AON, max_iter, time_limit, initial_tour
+            input_data, ST, AON, max_iter, time_limit, initial_tour
         );
+        routes.add_route(std::move(best_vns_tour));
 
-        // Translate route indexing back
-        Tour global_tour(best_vns_tour.vertices.size());
-        global_tour.vertices.clear();
-        for (int local_v : best_vns_tour.vertices) {
-            int global_v = new1_to_old0[local_v];
-            global_tour.vertices.push_back(global_v);
-
-            if (global_v != 0) {
-                excluded_points[global_v] = true;
+        // Remove visited vertices
+        for (int v : subset_to_visit) {
+            if (!excluded_points[v]) {
+                excluded_points[v] = true;
                 remaining_points--;
             }
         }
-
-        routes.add_route(std::move(global_tour));
     }
 
     std::cout << "Starting global post-processing..." << std::endl;
     PostProcessAllRoutes(routes, input_data);
 
     std::vector<Solution> all_agent_solutions;
-    std::vector<int> identity(input_data.points_count + 1);
-    for (size_t i = 0; i < identity.size(); ++i) {
-        identity[i] = i;
-    }
 
     for (const auto& tour : routes.routes) {
         Solution sol;
@@ -157,13 +128,13 @@ int main(int argc, char* argv[]) {
         }
 
         sol.solution_size = sol.route.size();
-        sol.total_time = tour->compute_cost(input_data, identity);
-        sol.total_distance = tour->compute_distance(input_data, identity);
-        sol.total_value = tour->compute_value(input_data, identity);
+        sol.total_time = tour->compute_cost(input_data);
+        sol.total_distance = tour->compute_distance(input_data);
+        sol.total_value = tour->compute_value(input_data);
         all_agent_solutions.push_back(sol);
     }
 
-    print_gini_distance(all_agent_solutions);
+    PrintGiniDistance(all_agent_solutions);
 
     // 8. Запись итогового JSON (в формате массива объектов)
     if (JsonParser::WriteMultiSolutionToJsonFile(output_json, all_agent_solutions)) {

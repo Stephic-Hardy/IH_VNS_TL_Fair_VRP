@@ -1,5 +1,4 @@
-#ifndef NEIGHBORHOODS_H
-#define NEIGHBORHOODS_H
+#pragma once
 
 #include "tour.h"
 #include "problem_arguments.hpp"
@@ -19,9 +18,6 @@ public:
         const Tour& current, 
         NeighborhoodType type,
         const InputData& input_data,
-        const std::vector<int>& new1_to_old0,
         int k = 3
     );
 };
-
-#endif

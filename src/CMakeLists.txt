@@ -17,7 +17,6 @@ include_directories(
 
 # Source files - относительные пути от src/
 set(SOURCES
-    data_adapter.cpp
     first_step.cpp
     insertion_heuristic.cpp
     main.cpp

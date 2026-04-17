@@ -4,16 +4,12 @@
 #include <unordered_set>
 #include <algorithm> 
 
-Tour InsertionHeuristic::build_initial_tour(int n, const InputData& input_data, const std::vector<int>& new1_to_old0) {
+Tour InsertionHeuristic::BuildInitialTour(const std::vector<int> &global_subset, const InputData& input_data) {
     auto seed = std::chrono::steady_clock::now().time_since_epoch().count();
     std::mt19937 gen(static_cast<unsigned>(seed));
 
-    Tour tour(n);
-    tour.vertices = {1};  
-    std::unordered_set<int> unvisited;  
-    for (int i = 2; i <= n; ++i) {
-        unvisited.insert(i);
-    }
+    Tour tour(1);
+    std::unordered_set<int> unvisited(global_subset.begin(), global_subset.end());
 
     while (!unvisited.empty()) {
         int rd = gen() % 2; 
@@ -28,7 +24,7 @@ Tour InsertionHeuristic::build_initial_tour(int n, const InputData& input_data, 
                     Tour temp = tour.copy();
                     temp.vertices.insert(temp.vertices.begin() + j, v);
                     temp.invalidate_cache();
-                    double delta = temp.compute_cost(input_data, new1_to_old0) - tour.compute_cost(input_data, new1_to_old0);
+                    double delta = temp.compute_cost(input_data) - tour.compute_cost(input_data);
                     if (delta < min_delta) {
                         min_delta = delta;
                         best_vertex = v;
@@ -46,7 +42,7 @@ Tour InsertionHeuristic::build_initial_tour(int n, const InputData& input_data, 
             for (int v : unvisited) {
                 double min_dist = std::numeric_limits<double>::infinity();
                 for (int u : tour.vertices) {
-                    double dist = input_data.get_time_dependent_cost(0, new1_to_old0[u], new1_to_old0[v]);
+                    double dist = input_data.get_time_dependent_cost(0, u, v);
                     min_dist = std::min(min_dist, dist);
                 }
                 if (min_dist > max_min_dist) {
@@ -61,7 +57,7 @@ Tour InsertionHeuristic::build_initial_tour(int n, const InputData& input_data, 
                 Tour temp = tour.copy();
                 temp.vertices.insert(temp.vertices.begin() + j, best_vertex);
                 temp.invalidate_cache();
-                double delta = temp.compute_cost(input_data, new1_to_old0) - tour.compute_cost(input_data, new1_to_old0);
+                double delta = temp.compute_cost(input_data) - tour.compute_cost(input_data);
                 if (delta < min_delta) {
                     min_delta = delta;
                     best_position = j;

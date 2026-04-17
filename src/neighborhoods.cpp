@@ -4,17 +4,16 @@
 #include <iostream> 
 
 std::pair<Tour, double> Neighborhoods::find_best_neighbor(const Tour& current, NeighborhoodType type,
-                                                         const InputData& input_data,
-                                                         const std::vector<int>& new1_to_old0, int k) {
+                                                         const InputData& input_data, int k) {
     Tour best = current.copy();
-    if (!best.validate(input_data.points_count)) {
+    if (!best.validate()) {
         std::cerr << "Invalid initial tour in find_best_neighbor" << std::endl;
-        return {best, current.compute_cost(input_data, new1_to_old0)};  
+        return {best, current.compute_cost(input_data)};
     }
     
-    double min_cost = current.compute_cost(input_data, new1_to_old0);
-    double best_value = current.compute_value(input_data, new1_to_old0);
-    double best_distance = current.compute_distance(input_data, new1_to_old0);
+    double min_cost = current.compute_cost(input_data);
+    double best_value = current.compute_value(input_data);
+    double best_distance = current.compute_distance(input_data);
     size_t n = current.vertices.size();
 
     switch (type) {
@@ -24,13 +23,13 @@ std::pair<Tour, double> Neighborhoods::find_best_neighbor(const Tour& current, N
                 int v = neighbor.vertices[i];
                 neighbor.vertices.erase(neighbor.vertices.begin() + i);
                 neighbor.vertices.push_back(v);
-                if (!neighbor.validate(input_data.points_count)) {
+                if (!neighbor.validate()) {
                     continue;
                 }
                 neighbor.invalidate_cache();
-                double cost = neighbor.compute_cost(input_data, new1_to_old0);
-                double value = neighbor.compute_value(input_data, new1_to_old0);
-                double distance = neighbor.compute_distance(input_data, new1_to_old0);
+                double cost = neighbor.compute_cost(input_data);
+                double value = neighbor.compute_value(input_data);
+                double distance = neighbor.compute_distance(input_data);
                 
 
                 if (value > best_value + 1e-9 || 
@@ -48,13 +47,13 @@ std::pair<Tour, double> Neighborhoods::find_best_neighbor(const Tour& current, N
             for (size_t i = 1; i < n - 1; ++i) {
                 Tour neighbor = current.copy();
                 std::swap(neighbor.vertices[i], neighbor.vertices[i + 1]);
-                if (!neighbor.validate(input_data.points_count)) {
+                if (!neighbor.validate()) {
                     continue;
                 }
                 neighbor.invalidate_cache();
-                double cost = neighbor.compute_cost(input_data, new1_to_old0);
-                double value = neighbor.compute_value(input_data, new1_to_old0);
-                double distance = neighbor.compute_distance(input_data, new1_to_old0);
+                double cost = neighbor.compute_cost(input_data);
+                double value = neighbor.compute_value(input_data);
+                double distance = neighbor.compute_distance(input_data);
                 
                 if (value > best_value + 1e-9 || 
                    (std::abs(value - best_value) < 1e-9 && cost < min_cost - 1e-9) ||
@@ -73,13 +72,13 @@ std::pair<Tour, double> Neighborhoods::find_best_neighbor(const Tour& current, N
                 for (size_t j = i + 1; j < n; ++j) {
                     Tour neighbor = current.copy();
                     std::swap(neighbor.vertices[i], neighbor.vertices[j]);
-                    if (!neighbor.validate(input_data.points_count)) {
+                    if (!neighbor.validate()) {
                         continue;
                     }
                     neighbor.invalidate_cache();
-                    double cost = neighbor.compute_cost(input_data, new1_to_old0);
-                    double value = neighbor.compute_value(input_data, new1_to_old0);
-                    double distance = neighbor.compute_distance(input_data, new1_to_old0);
+                    double cost = neighbor.compute_cost(input_data);
+                    double value = neighbor.compute_value(input_data);
+                    double distance = neighbor.compute_distance(input_data);
                     
                     if (value > best_value + 1e-9 || 
                        (std::abs(value - best_value) < 1e-9 && cost < min_cost - 1e-9) ||
@@ -98,13 +97,13 @@ std::pair<Tour, double> Neighborhoods::find_best_neighbor(const Tour& current, N
                 for (size_t j = i + 2; j < n; ++j) {
                     Tour neighbor = current.copy();
                     std::reverse(neighbor.vertices.begin() + i, neighbor.vertices.begin() + j + 1);
-                    if (!neighbor.validate(input_data.points_count)) {
+                    if (!neighbor.validate()) {
                         continue;
                     }
                     neighbor.invalidate_cache();
-                    double cost = neighbor.compute_cost(input_data, new1_to_old0);
-                    double value = neighbor.compute_value(input_data, new1_to_old0);
-                    double distance = neighbor.compute_distance(input_data, new1_to_old0);
+                    double cost = neighbor.compute_cost(input_data);
+                    double value = neighbor.compute_value(input_data);
+                    double distance = neighbor.compute_distance(input_data);
                     
                     if (value > best_value + 1e-9 || 
                        (std::abs(value - best_value) < 1e-9 && cost < min_cost - 1e-9) ||
@@ -141,14 +140,14 @@ std::pair<Tour, double> Neighborhoods::find_best_neighbor(const Tour& current, N
                     continue;
                 }
                 
-                if (!neighbor.validate(input_data.points_count)) {
+                if (!neighbor.validate()) {
                     continue;
                 }
                 
                 neighbor.invalidate_cache();
-                double cost = neighbor.compute_cost(input_data, new1_to_old0);
-                double value = neighbor.compute_value(input_data, new1_to_old0);
-                double distance = neighbor.compute_distance(input_data, new1_to_old0);
+                double cost = neighbor.compute_cost(input_data);
+                double value = neighbor.compute_value(input_data);
+                double distance = neighbor.compute_distance(input_data);
                 
                 if (value > best_value + 1e-9 || 
                    (std::abs(value - best_value) < 1e-9 && cost < min_cost - 1e-9) ||
@@ -168,13 +167,13 @@ std::pair<Tour, double> Neighborhoods::find_best_neighbor(const Tour& current, N
                 auto block = std::vector<int>(neighbor.vertices.begin() + i - k + 1, neighbor.vertices.begin() + i + 1);
                 neighbor.vertices.erase(neighbor.vertices.begin() + i - k + 1, neighbor.vertices.begin() + i + 1);
                 neighbor.vertices.insert(neighbor.vertices.begin() + i - k, block.begin(), block.end());
-                if (!neighbor.validate(input_data.points_count)) {
+                if (!neighbor.validate()) {
                     continue;
                 }
                 neighbor.invalidate_cache();
-                double cost = neighbor.compute_cost(input_data, new1_to_old0);
-                double value = neighbor.compute_value(input_data, new1_to_old0);
-                double distance = neighbor.compute_distance(input_data, new1_to_old0);
+                double cost = neighbor.compute_cost(input_data);
+                double value = neighbor.compute_value(input_data);
+                double distance = neighbor.compute_distance(input_data);
                 
                 if (value > best_value + 1e-9 || 
                    (std::abs(value - best_value) < 1e-9 && cost < min_cost - 1e-9) ||
@@ -191,7 +190,7 @@ std::pair<Tour, double> Neighborhoods::find_best_neighbor(const Tour& current, N
             break;
     }
 
-    if (!best.validate(input_data.points_count)) {
+    if (!best.validate()) {
         std::cerr << "Final best neighbor invalid!" << std::endl;
     }
     return {best, min_cost};

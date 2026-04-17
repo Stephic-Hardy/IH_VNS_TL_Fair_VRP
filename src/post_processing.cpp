@@ -157,7 +157,7 @@ Tour PostProcessSingleRoute(const Tour& initial_tour, const InputData& input_dat
     return best_tour;
 }
 
-void post_process_all_routes(RoutePack& routes, const InputData& input_data) {
+void PostProcessAllRoutes(RoutePack& routes, const InputData& input_data) {
     for (auto& route : routes.routes) {
         route = std::make_shared<Tour>(PostProcessSingleRoute(*route, input_data));
     }

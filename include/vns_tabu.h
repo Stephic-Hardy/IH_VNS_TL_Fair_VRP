@@ -14,15 +14,12 @@ private:
     
     static std::string hash_move(int type, int i, int j, int k);
     static std::string hash_2opt(int i, int j);
-    static Tour vns_without_tabu(const Tour& start_tour, const InputData& input_data, 
-                                const std::vector<int>& new1_to_old0, int max_iter);
+    static Tour vns_without_tabu(const Tour& start_tour, const InputData& input_data, int max_iter);
 
 
 public:
     static std::pair<Tour, double> vns_tabu_advanced(
-        int n,
         const InputData& input_data,
-        const std::vector<int>& new1_to_old0,
         double ST,
         int AON,
         int max_iterations_without_improve,
