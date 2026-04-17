@@ -1,29 +1,28 @@
-#ifndef TOUR_H
-#define TOUR_H
+#pragma once
+
+#include "problem_arguments.hpp"
 
 #include <vector>
-#include <iostream>
+#include <optional>
 
 class Tour {
 private:
-    mutable double cached_cost;
-    mutable double cached_value;
+    mutable std::optional<double> cached_cost;
+    mutable std::optional<double> cached_value;
 
 public:
     std::vector<int> vertices;
 
     Tour(int n = 0);
-    Tour(const Tour& other);
-    Tour& operator=(const Tour& other);
 
+    double compute_distance(const InputData& input, const std::vector<int>& new1_to_old0) const;
 
-    double compute_distance(const class InputData& input, const std::vector<int>& new1_to_old0) const;
-    double compute_cost(const class InputData& input, const std::vector<int>& new1_to_old0) const;
-    double compute_value(const class InputData& input, const std::vector<int>& new1_to_old0) const;  
+    double compute_distance(const InputData& input) const;
+
+    double compute_cost(const InputData& input, const std::vector<int>& new1_to_old0) const;
+    double compute_value(const InputData& input, const std::vector<int>& new1_to_old0) const;
     void print() const;
     bool validate(int n) const;
     Tour copy() const;
-    void invalidate_cache();
+    void invalidate_cache() const;
 };
-
-#endif

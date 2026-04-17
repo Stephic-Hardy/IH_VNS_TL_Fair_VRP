@@ -74,10 +74,11 @@ int main(int argc, char* argv[]) {
     }
 
     std::vector<bool> excluded_points(input_data.points_count, false);
-    std::vector<Solution> all_agent_solutions;
     int remaining_points = input_data.points_count - 1; // исключая депо
 
     std::cout << "Starting multi-agent solver for " << remaining_points << " points..." << std::endl;
+
+    RoutePack routes;
 
     while (remaining_points >= input_data.min_load) {
         // 1. Получаем начальное подмножество точек через DP (FirstStep)
@@ -91,7 +92,9 @@ int main(int argc, char* argv[]) {
         // 2. Подготовка уникальных точек (чистим от лишних нулей FirstStep)
         std::vector<int> subset_to_visit;
         for (int v : fs_ans.vertexes) {
-            if (v != 0) subset_to_visit.push_back(v);
+            if (v != 0) {
+                subset_to_visit.push_back(v);
+            }
         }
 
         // 3. Создаем маппинг индексов (Депо всегда 1 в локальной нумерации)
@@ -107,7 +110,7 @@ int main(int argc, char* argv[]) {
             old0_to_new1[old_v] = i + 2;
         }
 
-        // 4. Начальный тур для VNS
+        // Construct initial route
         Tour initial_tour(sub_n);
         initial_tour.vertices.clear();
         initial_tour.vertices.push_back(1); // Депо
@@ -115,35 +118,48 @@ int main(int argc, char* argv[]) {
             initial_tour.vertices.push_back(old0_to_new1[v]);
         }
 
-        // 5. Запуск основного алгоритма (VNS + Tabu)
-        std::cout << "Agent " << all_agent_solutions.size() << ": optimizing " << subset_to_visit.size() << " points..." << std::endl;
-        
+        // Run the Variable Neighborhood Search Algorithm
+        std::cout << "Agent " << routes.routes.size() << ": optimizing " << subset_to_visit.size() << " points..." << std::endl;
         auto [best_vns_tour, _] = VNSTabu::vns_tabu_advanced(
             sub_n, input_data, new1_to_old0, ST, AON, max_iter, time_limit, initial_tour
         );
 
-        // 6. Post-processing пути
-        Tour polished_tour = post_process(best_vns_tour, input_data, new1_to_old0);
+        // Translate route indexing back
+        Tour global_tour(best_vns_tour.vertices.size());
+        global_tour.vertices.clear();
+        for (int local_v : best_vns_tour.vertices) {
+            int global_v = new1_to_old0[local_v];
+            global_tour.vertices.push_back(global_v);
 
-        // 7. Сохранение результата и обновление состояния
-        Solution sol;
-        sol.route.clear();
-        for (int nv : polished_tour.vertices) {
-            int ov = new1_to_old0[nv];
-            sol.route.push_back(ov);
-            if (ov != 0) {
-                excluded_points[ov] = true;
+            if (global_v != 0) {
+                excluded_points[global_v] = true;
                 remaining_points--;
             }
         }
-        // Гарантируем закрытие маршрута в депо без дублей
-        if (sol.route.back() != 0) sol.route.push_back(0);
+
+        routes.add_route(std::move(global_tour));
+    }
+
+    std::cout << "Starting global post-processing..." << std::endl;
+    PostProcessAllRoutes(routes, input_data);
+
+    std::vector<Solution> all_agent_solutions;
+    std::vector<int> identity(input_data.points_count + 1);
+    for (size_t i = 0; i < identity.size(); ++i) {
+        identity[i] = i;
+    }
+
+    for (const auto& tour : routes.routes) {
+        Solution sol;
+        sol.route = std::vector<uint64_t>(tour->vertices.begin(), tour->vertices.end());
+        if (sol.route.back() != 0) {
+            sol.route.push_back(0);
+        }
 
         sol.solution_size = sol.route.size();
-        sol.total_time = static_cast<uint64_t>(polished_tour.compute_cost(input_data, new1_to_old0));
-        sol.total_distance = static_cast<uint64_t>(polished_tour.compute_distance(input_data, new1_to_old0));
-        sol.total_value = static_cast<uint64_t>(polished_tour.compute_value(input_data, new1_to_old0));
-
+        sol.total_time = tour->compute_cost(input_data, identity);
+        sol.total_distance = tour->compute_distance(input_data, identity);
+        sol.total_value = tour->compute_value(input_data, identity);
         all_agent_solutions.push_back(sol);
     }
 
