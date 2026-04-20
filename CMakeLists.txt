@@ -30,8 +30,10 @@ set(SOURCES
     src/first_step.cpp
     src/insertion_heuristic.cpp
     src/main.cpp
-    src/neighborhoods.cpp
+    src/move.cpp
+    src/neighborhood.cpp
     src/tour.cpp
+    src/route_pack.cpp
     src/vns_tabu.cpp
     src/json_parser.cpp
     src/problem_arguments.cpp

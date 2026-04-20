@@ -4,16 +4,19 @@
 #include <memory>
 #include <vector>
 
-struct RoutePack {
+class RoutePack {
+public:
+    RoutePack& operator=(const RoutePack&) = default;
+
+    void DeepCopyRoute(size_t route_idx);
+
+    void AddRoute(Tour&& route);
+
+    double ComputeDistance(const InputData& input) const;
+
+    double ComputeCost(const InputData& input) const;
+
+    double ComputeValue(const InputData& input) const;
+
     std::vector<std::shared_ptr<Tour>> routes;
-
-    void add_route(Tour&& tour) {
-        routes.push_back(std::make_shared<Tour>(std::move(tour)));
-    }
-
-    double compute_distance(const InputData& input) const;
-
-    double compute_cost(const InputData& input) const;
-
-    double compute_value(const InputData& input) const;
 };

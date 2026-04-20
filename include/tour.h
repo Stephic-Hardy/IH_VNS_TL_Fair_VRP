@@ -6,18 +6,25 @@
 #include <optional>
 
 class Tour {
-    public:
+public:
     Tour(size_t n = 0);
 
-    double compute_distance(const InputData& input) const;
-    double compute_cost(const InputData& input) const;
-    double compute_value(const InputData& input) const;
-    void print() const;
-    bool validate() const;
-    Tour copy() const;
-    void invalidate_cache() const;
+    Tour& operator=(const Tour& other) = default;
+
+    double ComputeDistance(const InputData& input) const;
+
+    double ComputeCost(const InputData& input) const;
+
+    double ComputeValue(const InputData& input) const;
+
+    void Print() const;
+
+    void InvalidateCache() const;
+
+    Tour Copy() const;
 
     std::vector<int> vertices;
+
 private:
     mutable std::optional<double> cached_cost_;
     mutable std::optional<double> cached_value_;

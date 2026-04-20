@@ -21,10 +21,10 @@ Tour InsertionHeuristic::BuildInitialTour(const std::vector<int> &global_subset,
 
             for (int v : unvisited) {
                 for (size_t j = 1; j <= tour.vertices.size(); ++j) {  
-                    Tour temp = tour.copy();
+                    Tour temp = tour;
                     temp.vertices.insert(temp.vertices.begin() + j, v);
-                    temp.invalidate_cache();
-                    double delta = temp.compute_cost(input_data) - tour.compute_cost(input_data);
+                    temp.InvalidateCache();
+                    double delta = temp.ComputeCost(input_data) - tour.ComputeCost(input_data);
                     if (delta < min_delta) {
                         min_delta = delta;
                         best_vertex = v;
@@ -54,10 +54,10 @@ Tour InsertionHeuristic::BuildInitialTour(const std::vector<int> &global_subset,
             double min_delta = std::numeric_limits<double>::infinity();
             size_t best_position = 0;
             for (size_t j = 1; j <= tour.vertices.size(); ++j) {
-                Tour temp = tour.copy();
+                Tour temp = tour;
                 temp.vertices.insert(temp.vertices.begin() + j, best_vertex);
-                temp.invalidate_cache();
-                double delta = temp.compute_cost(input_data) - tour.compute_cost(input_data);
+                temp.InvalidateCache();
+                double delta = temp.ComputeCost(input_data) - tour.ComputeCost(input_data);
                 if (delta < min_delta) {
                     min_delta = delta;
                     best_position = j;
@@ -69,6 +69,6 @@ Tour InsertionHeuristic::BuildInitialTour(const std::vector<int> &global_subset,
         }
     }
 
-    tour.invalidate_cache(); 
+    tour.InvalidateCache();
     return tour;
 }

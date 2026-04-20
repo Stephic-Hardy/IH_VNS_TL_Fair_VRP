@@ -2,11 +2,9 @@
 #include "problem_arguments.hpp"
 
 #include <algorithm>
-#include <cassert>
 #include <random>
 #include <chrono>
 #include <iostream>
-#include <set>
 
 Tour::Tour(size_t n) : vertices(n), cached_cost_(std::nullopt), cached_value_(std::nullopt) {
     if (n == 0) {
@@ -21,7 +19,7 @@ Tour::Tour(size_t n) : vertices(n), cached_cost_(std::nullopt), cached_value_(st
     std::shuffle(vertices.begin() + 1, vertices.end(), gen);
 }
 
-double Tour::compute_value(const InputData& input) const {
+double Tour::ComputeValue(const InputData& input) const {
     if (cached_value_.has_value()) {
         return cached_value_.value();
     }
@@ -67,7 +65,7 @@ double Tour::compute_value(const InputData& input) const {
     return total_value;
 }
 
-double Tour::compute_cost(const InputData& input) const {
+double Tour::ComputeCost(const InputData& input) const {
     if (cached_cost_.has_value()) {
         return cached_cost_.value();
     }
@@ -105,7 +103,7 @@ double Tour::compute_cost(const InputData& input) const {
     return current_time;
 }
 
-double Tour::compute_distance(const InputData& input) const {
+double Tour::ComputeDistance(const InputData& input) const {
     double total_distance = 0.0;
 
     for (size_t i = 1; i < vertices.size(); ++i) {
@@ -121,7 +119,7 @@ double Tour::compute_distance(const InputData& input) const {
     return total_distance;
 }
 
-void Tour::print() const {
+void Tour::Print() const {
     std::cout << "Tour: ";
     for (int v : vertices) {
         std::cout << v << " ";
@@ -129,31 +127,11 @@ void Tour::print() const {
     std::cout << std::endl;
 }
 
-bool Tour::validate() const {
-    if (vertices.empty() || vertices[0] != 0) {
-        std::cerr << "Error: Tour must start with depot (index 0)" << std::endl;
-        return false;
-    }
-    std::set<int> unique_vertices(vertices.begin(), vertices.end());
-    if (unique_vertices.size() != vertices.size()) {
-        std::cerr << "Error: Duplicate vertices in tour" << std::endl;
-        return false;
-    }
-    for (int v : vertices) {
-        if (v < 0) {
-            // TODO: Wtf is going here? Do we really need this boundary check?
-            std::cerr << "Error: Vertex " << v << " has negative index" << std::endl;
-            return false;
-        }
-    }
-    return true;
-}
-
-void Tour::invalidate_cache() const {
+void Tour::InvalidateCache() const {
     cached_cost_ = std::nullopt;
     cached_value_ = std::nullopt;
 }
 
-Tour Tour::copy() const {
+Tour Tour::Copy() const {
     return Tour(*this);
 }
