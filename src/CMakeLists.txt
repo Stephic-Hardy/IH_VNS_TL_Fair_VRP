@@ -15,19 +15,6 @@ include_directories(
     ${CMAKE_CURRENT_SOURCE_DIR}
 )
 
-# Source files - относительные пути от src/
-set(SOURCES
-    data_adapter.cpp
-    first_step.cpp
-    insertion_heuristic.cpp
-    main.cpp
-    neighborhoods.cpp
-    tour.cpp
-    vns_tabu.cpp
-    json_parser.cpp
-    problem_arguments.cpp
-)
-
 # Create executable
 add_executable(tdtsp_solver ${SOURCES})
 

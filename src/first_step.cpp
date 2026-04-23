@@ -60,8 +60,8 @@ FirstStepAnswer DoFirstStep(const InputData &input, const std::vector<bool>& exc
                     if (new_point_score > new_best_point_score && new_point_time <= max_time && new_point_dist <= max_dist) {
                         prev_best_point = i;
                         new_best_point_score = new_point_score;
-                        new_best_point_time = new_best_point_time;
-                        new_best_point_dist = new_best_point_dist;
+                        new_best_point_time = new_point_time;
+                        new_best_point_dist = new_point_dist;
                     }
                 }
             }
