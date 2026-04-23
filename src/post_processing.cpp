@@ -4,7 +4,10 @@
 
 #include <algorithm>
 #include <optional>
-
+#include <numeric>
+#include <cmath>
+#include <vector>
+#include <iostream>
 
 namespace {
 /**
@@ -160,5 +163,106 @@ Tour PostProcessSingleRoute(const Tour& initial_tour, const InputData& input_dat
 void PostProcessAllRoutes(RoutePack& routes, const InputData& input_data) {
     for (auto& route : routes.routes) {
         route = std::make_shared<Tour>(PostProcessSingleRoute(*route, input_data));
+    }
+}
+
+void BalanceRoutes(RoutePack& routes, const InputData& input_data) {
+    bool local_improved = true;
+
+    while (local_improved) {
+        local_improved = false;
+
+        size_t max_idx = 0, min_idx = 0;
+        double dist_max = -1.0, dist_min = std::numeric_limits<double>::max();
+
+        for (size_t i = 0; i < routes.routes.size(); ++i) {
+            double d = routes.routes[i]->ComputeDistance(input_data);
+            if (d > dist_max) { dist_max = d; max_idx = i; }
+            if (d < dist_min) { dist_min = d; min_idx = i; }
+        }
+
+        if (max_idx == min_idx) break;
+
+        auto& r_max = *routes.routes[max_idx];
+        auto& r_min = *routes.routes[min_idx];
+        double current_diff = dist_max - dist_min;
+
+        if (current_diff < 10.0) break;
+
+        int best_v_idx = -1;
+        size_t best_insert_pos = 0;
+        double best_new_diff = current_diff;
+        Tour best_rmax_cand = r_max.Copy();
+        Tour best_rmin_cand = r_min.Copy();
+
+        bool found_move = false;
+
+        for (size_t i = 1; i < r_max.vertices.size(); ++i) {
+            int v = r_max.vertices[i];
+            Tour temp_rmax = r_max.Copy();
+            temp_rmax.vertices.erase(temp_rmax.vertices.begin() + i);
+            temp_rmax.InvalidateCache();
+            double new_max_dist = temp_rmax.ComputeDistance(input_data);
+
+            for (size_t j = 1; j <= r_min.vertices.size(); ++j) {
+                Tour temp_rmin = r_min.Copy();
+                temp_rmin.vertices.insert(temp_rmin.vertices.begin() + j, v);
+                temp_rmin.InvalidateCache();
+
+                if (temp_rmin.vertices.size() - 1 > input_data.max_load) continue;
+                if (temp_rmin.ComputeCost(input_data) > input_data.max_time) continue;
+
+                double new_min_dist = temp_rmin.ComputeDistance(input_data);
+                double new_diff = std::abs(new_max_dist - new_min_dist);
+
+                if (new_diff < best_new_diff - 1.0 && std::max(new_max_dist, new_min_dist) < dist_max) {
+                    best_new_diff = new_diff;
+                    best_v_idx = i;
+                    best_insert_pos = j;
+                    best_rmax_cand = temp_rmax;
+                    best_rmin_cand = temp_rmin;
+                    found_move = true;
+                }
+            }
+        }
+
+        if (!found_move) {
+            for (size_t i = 1; i < r_max.vertices.size(); ++i) {
+                for (size_t j = 1; j < r_min.vertices.size(); ++j) {
+                    Tour temp_rmax = r_max.Copy();
+                    Tour temp_rmin = r_min.Copy();
+
+                    std::swap(temp_rmax.vertices[i], temp_rmin.vertices[j]);
+                    
+                    temp_rmax.InvalidateCache();
+                    temp_rmin.InvalidateCache();
+
+                    if (temp_rmax.ComputeCost(input_data) > input_data.max_time || 
+                        temp_rmin.ComputeCost(input_data) > input_data.max_time) continue;
+
+                    double n_max_d = temp_rmax.ComputeDistance(input_data);
+                    double n_min_d = temp_rmin.ComputeDistance(input_data);
+                    double new_diff = std::abs(n_max_d - n_min_d);
+
+                    if (new_diff < best_new_diff - 1.0 && std::max(n_max_d, n_min_d) < dist_max) {
+                        best_new_diff = new_diff;
+                        best_rmax_cand = temp_rmax;
+                        best_rmin_cand = temp_rmin;
+                        best_v_idx = i; 
+                        found_move = true;
+                    }
+                }
+            }
+        }
+
+        if (found_move) {
+            routes.routes[max_idx] = std::make_shared<Tour>(best_rmax_cand);
+            routes.routes[min_idx] = std::make_shared<Tour>(best_rmin_cand);
+
+            routes.routes[max_idx] = std::make_shared<Tour>(PostProcessSingleRoute(*routes.routes[max_idx], input_data));
+            routes.routes[min_idx] = std::make_shared<Tour>(PostProcessSingleRoute(*routes.routes[min_idx], input_data));
+
+            local_improved = true;
+        }
     }
 }
