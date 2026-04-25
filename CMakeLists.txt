@@ -1,8 +1,8 @@
 cmake_minimum_required(VERSION 3.16)
-project(tdtsp_solver)
+project(TDTSP_Solver)
 
 # Set C++ standard
-set(CMAKE_CXX_STANDARD 17)
+set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 # Executable will be created in the root of the repo
@@ -33,30 +33,41 @@ else()
     message(STATUS "Using downloaded nlohmann_json")
 endif()
 
+find_package(GTest 3.2.0 QUIET)
+if(GTest_FOUND)
+    message(STATUS "Using system GTest")
+else()
+    include(FetchContent)
+    FetchContent_Declare(
+            googletest
+            GIT_REPOSITORY https://github.com/google/googletest.git
+            GIT_TAG        v1.17.0
+    )
+    set(gtest_force_shared_crt ON CACHE BOOL "" FORCE)
+    FetchContent_MakeAvailable(googletest)
+    message(STATUS "Using downloaded GTest")
+endif()
+
 # Source files
 set(SOURCES
         src/first_step.cpp
         src/insertion_heuristic.cpp
-        src/main.cpp
         src/move.cpp
         src/neighborhood.cpp
-        src/tour.cpp
+        src/route.cpp
         src/route_pack.cpp
         src/vns_tabu.cpp
-        src/json_parser.cpp
         src/problem_arguments.cpp
         src/post_processing.cpp
 )
 
-add_executable(tdtsp_solver ${SOURCES})
-
-# Include directories
+# Solver executable
+add_executable(tdtsp_solver
+        ${SOURCES}
+        src/json_parser.cpp
+        src/main.cpp
+)
 target_include_directories(tdtsp_solver PRIVATE
     ${CMAKE_SOURCE_DIR}/include
 )
-
-# Link libraries
-target_link_libraries(tdtsp_solver 
-    PRIVATE
-        nlohmann_json::nlohmann_json
-)
+target_link_libraries(tdtsp_solver PRIVATE nlohmann_json::nlohmann_json)

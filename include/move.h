@@ -1,5 +1,4 @@
 #pragma once
-#include <algorithm>
 #include <string>
 
 #include "route_pack.h"
@@ -11,6 +10,7 @@ enum MoveTypes {
     N4_2OPT,
     N5_MOVE_FWD_K,
     N6_MOVE_BWD_K,
+    N7_REORDER_BLOCK,
 };
 
 class Move : std::enable_shared_from_this<Move> {
@@ -34,7 +34,7 @@ private:
 
 class RemoveInsertMove : public Move {
 public:
-    RemoveInsertMove(int r, size_t pos);
+    RemoveInsertMove(int r, size_t remove_pos, size_t insert_pos);
 
     RoutePack Apply(const RoutePack& sol) const override;
 
@@ -44,7 +44,7 @@ public:
 
 private:
     int route_idx_;
-    size_t pos_;
+    size_t remove_pos_, insert_pos_;
 };
 
 class SwapMove : public Move {
@@ -94,4 +94,20 @@ private:
 
     int route_idx_;
     size_t start_pos_, length_, insert_pos_;
+};
+
+class ReorderBlockMove : public Move {
+public:
+    ReorderBlockMove(int r, size_t start, std::vector<int> order);
+
+    RoutePack Apply(const RoutePack& sol) const override;
+
+    std::string GetTabuHash() const override;
+
+    std::unique_ptr<Move> Clone() const override;
+
+private :
+    int route_idx_;
+    size_t start_pos_;
+    std::vector<int> new_order_;
 };

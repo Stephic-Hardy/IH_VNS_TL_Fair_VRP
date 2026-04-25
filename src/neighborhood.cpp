@@ -1,5 +1,6 @@
 #include "neighborhood.h"
 
+#include <algorithm>
 #include <functional>
 
 namespace {
@@ -71,7 +72,7 @@ std::pair<RoutePack, std::unique_ptr<Move>> Neighborhood::FindBestNeighbor(
 void Neighborhood::VisitEachMove(const RoutePack& sol,
                                  std::function<void(const Move&)> evaluate) const {
     std::vector<std::unique_ptr<Move>> moves;
-    for (size_t route = 0; route < sol.routes.size(); ++route) {
+    for (size_t route = 0; route < sol.Size(); ++route) {
         VisitEachMove(sol, route, evaluate);
     }
 }
@@ -79,28 +80,41 @@ void Neighborhood::VisitEachMove(const RoutePack& sol,
 void RelocateNeighborhood::VisitEachMove(const RoutePack& sol, size_t route,
                                          std::function<void(const Move&)> evaluator) const {
     std::vector<std::unique_ptr<Move>> moves;
-    size_t n = sol.routes[route]->vertices.size();
+    size_t n = sol.GetRoute(route).Length();
     for (size_t from = 1; from < n - 1; ++from) {
-        RemoveInsertMove move(route, from);
+        RemoveInsertMove move(route, from, n - 1);
         evaluator(move);
     }
 }
 
+void MoveVertexNeighborhood::VisitEachMove(const RoutePack& sol, size_t route,
+                                           std::function<void(const Move&)> evaluator) const {
+    std::vector<std::unique_ptr<Move>> moves;
+    size_t n = sol.GetRoute(route).Length();
+    for (size_t from = 1; from < n - 1; ++from) {
+        for (size_t to = 1; to < n - 1; ++to) {
+            if (to == from) {
+                continue;
+            }
+            RemoveInsertMove move(route, from, to);
+            evaluator(move);
+        }
+    }
+}
 
 void SwapAdjNeighborhood::VisitEachMove(const RoutePack& sol, size_t route,
                                         std::function<void(const Move&)> evaluator) const {
-    size_t n = sol.routes[route]->vertices.size();
+    size_t n = sol.GetRoute(route).Length();
     for (size_t i = 1; i < n - 1; ++i) {
         SwapMove move(route, i, i + 1);
         evaluator(move);
     }
 }
 
-
 void
 SwapNeighborhood::VisitEachMove(const RoutePack& sol, size_t route,
                                 std::function<void(const Move&)> evaluator) const {
-    size_t n = sol.routes[route]->vertices.size();
+    size_t n = sol.GetRoute(route).Length();
     for (size_t i = 1; i < n; ++i) {
         for (size_t j = i + 1; j < n; ++j) {
             SwapMove move(route, i, j);
@@ -112,7 +126,7 @@ SwapNeighborhood::VisitEachMove(const RoutePack& sol, size_t route,
 void
 TwoOptNeighborhood::VisitEachMove(const RoutePack& sol, size_t route,
                                   std::function<void(const Move&)> evaluator) const {
-    size_t n = sol.routes[route]->vertices.size();
+    size_t n = sol.GetRoute(route).Length();
     for (size_t i = 1; i < n - 2; ++i) {
         for (size_t j = i + 2; j < n; ++j) {
             TwoOptMove move(route, i, j);
@@ -127,7 +141,7 @@ BlockMoveForwardNeighborhood::BlockMoveForwardNeighborhood(size_t block_size) : 
 void
 BlockMoveForwardNeighborhood::VisitEachMove(const RoutePack& sol, size_t route,
                                             std::function<void(const Move&)> evaluator) const {
-    size_t n = sol.routes[route]->vertices.size();
+    size_t n = sol.GetRoute(route).Length();
     for (size_t i = 2; i < n - k_; ++i) {
         BlockRelocateMove move(route, i, k_, i + 1);
         evaluator(move);
@@ -140,10 +154,32 @@ BlockMoveBackwardNeighborhood::BlockMoveBackwardNeighborhood(size_t block_size) 
 void
 BlockMoveBackwardNeighborhood::VisitEachMove(const RoutePack& sol, size_t route,
                                              std::function<void(const Move&)> evaluator) const {
-    size_t n = sol.routes[route]->vertices.size();
+    size_t n = sol.GetRoute(route).Length();
     for (size_t i = k_ + 1; i < n; ++i) {
         size_t start_pos = i - k_ + 1;
         BlockRelocateMove move(route, start_pos, k_, start_pos - 1);
         evaluator(move);
+    }
+}
+
+ReorderBlockNeighborhood::ReorderBlockNeighborhood(size_t k) : k_(k) {
+}
+
+void ReorderBlockNeighborhood::VisitEachMove(const RoutePack& sol, size_t route,
+                                             std::function<void(const Move&)> evaluator) const {
+    size_t n = sol.GetRoute(route).Length();
+    if (n <= k_) {
+        return;
+    }
+
+    for (size_t i = 1; i <= n - k_; ++i) {
+        std::vector window(sol.GetRoute(route).Vertices().begin() + i,
+                           sol.GetRoute(route).Vertices().begin() + i + k_);
+
+        std::ranges::sort(window);
+        do {
+            ReorderBlockMove move(route, i, window);
+            evaluator(move);
+        } while (std::ranges::next_permutation(window).found);
     }
 }

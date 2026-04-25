@@ -1,30 +1,23 @@
 #include "post_processing.h"
-#include "tour.h"
+#include "route.h"
 #include "problem_arguments.hpp"
 
 #include <algorithm>
 #include <optional>
+
+#include "neighborhood.h"
 
 
 namespace {
 /**
  * Tries to reverse a subpath (helps to get rid of self-intersections)
  */
-std::optional<Tour> Run2Opt(const Tour& baseline_tour, const InputData& input_data) {
-    double baseline_distance = baseline_tour.ComputeDistance(input_data);
-
-    size_t n = baseline_tour.vertices.size();
-    for (size_t i = 1; i < n - 1; ++i) {
-        for (size_t j = i + 1; j < n; ++j) {
-            Tour neighbor = baseline_tour.Copy();
-            std::reverse(neighbor.vertices.begin() + i, neighbor.vertices.begin() + j + 1);
-            neighbor.InvalidateCache();
-
-            double current_distance = neighbor.ComputeDistance(input_data);
-            if (current_distance < baseline_distance - 1e-7) {
-                return {neighbor};
-            }
-        }
+std::optional<RoutePack> Run2Opt(const RoutePack& baseline_tour, size_t route,
+                                 const InputData& input_data) {
+    auto [neighbour, move] = TwoOptNeighborhood().
+        FindBestNeighbor(baseline_tour, input_data, route);
+    if (move) {
+        return neighbour;
     }
     return std::nullopt;
 }
@@ -33,33 +26,12 @@ std::optional<Tour> Run2Opt(const Tour& baseline_tour, const InputData& input_da
  * Tries to move vertex i to the place j
  * (might reduce the length of the path after removing self-intersection, although I'd rate this as unlikely)
  */
-std::optional<Tour> MoveVertex(const Tour& baseline_tour, const InputData& input_data) {
-    double baseline_distance = baseline_tour.ComputeDistance(input_data);
-
-    size_t n = baseline_tour.vertices.size();
-    for (size_t i = 1; i < n - 1; ++i) {
-        for (size_t j = 1; j < n - 1; ++j) {
-            if (i == j) {
-                continue;
-            }
-            Tour neighbor = baseline_tour.Copy();
-            if (i < j) {
-                std::copy(baseline_tour.vertices.begin() + i + 1,
-                          baseline_tour.vertices.begin() + j + 1,
-                          neighbor.vertices.begin() + i);
-                neighbor.vertices[j] = baseline_tour.vertices[i];
-            } else {
-                std::copy(baseline_tour.vertices.begin() + j, baseline_tour.vertices.begin() + i,
-                          neighbor.vertices.begin() + j + 1);
-                neighbor.vertices[j] = baseline_tour.vertices[i];
-            }
-            neighbor.InvalidateCache();
-
-            double current_distance = neighbor.ComputeDistance(input_data);
-            if (current_distance < baseline_distance - 1e-7) {
-                return {neighbor};
-            }
-        }
+std::optional<RoutePack> MoveVertex(const RoutePack& baseline_tour, size_t route,
+                                    const InputData& input_data) {
+    auto [neighbour, move] = MoveVertexNeighborhood().FindBestNeighbor(
+        baseline_tour, input_data, route);
+    if (move) {
+        return neighbour;
     }
     return std::nullopt;
 }
@@ -68,87 +40,42 @@ std::optional<Tour> MoveVertex(const Tour& baseline_tour, const InputData& input
  * Tries to reorder each group of k consecutive vertices
  */
 template <size_t k>
-std::optional<Tour> OptimizeKConsecutive(const Tour& baseline_tour, const InputData& input_data) {
+std::optional<RoutePack> OptimizeKConsecutive(const RoutePack& baseline_tour, size_t route,
+                                              const InputData& input_data) {
     static_assert(k > 1 && k < 10,
                   "It is highly recommended to use k less than 10 due to the algorithm complexity");
-    if (baseline_tour.vertices.size() <= k) {
-        return std::nullopt;
-    }
-
-    Tour best_tour = baseline_tour.Copy();
-
-    for (size_t i = 1; i <= best_tour.vertices.size() - k; ++i) {
-        size_t prev_idx = best_tour.vertices[i - 1];
-        size_t next_idx = (i + k < best_tour.vertices.size())
-                              ? best_tour.vertices[i + k]
-                              : 0;
-
-        auto compute_segment_distance = [prev_idx, next_idx, &input_data](
-            const std::vector<int>& window) {
-            auto d = static_cast<double>(input_data.distance_matrix[prev_idx][window[0]]);
-
-            for (size_t m = 0; m < k - 1; ++m) {
-                d += static_cast<double>(
-                    input_data.distance_matrix[window[m]][window[m + 1]]);
-            }
-
-            d += static_cast<double>(input_data.distance_matrix[window.back()][next_idx]);
-            return d;
-        };
-
-        std::vector<int> current_window(best_tour.vertices.begin() + i,
-                                        best_tour.vertices.begin() + i + k);
-
-        double original_dist = compute_segment_distance(current_window);
-        double best_local_dist = original_dist;
-        std::vector<int> best_permutation = current_window;
-
-        std::vector<int> working_window = current_window;
-        std::sort(working_window.begin(), working_window.end());
-        bool found_improvement = false;
-        do {
-            double current_dist = compute_segment_distance(working_window);
-            if (current_dist < best_local_dist - 1e-7) {
-                best_local_dist = current_dist;
-                best_permutation = working_window;
-                found_improvement = true;
-            }
-        } while (std::next_permutation(working_window.begin(), working_window.end()));
-
-        if (found_improvement) {
-            for (size_t m = 0; m < k; ++m) {
-                best_tour.vertices[i + m] = best_permutation[m];
-            }
-            best_tour.InvalidateCache();
-            return best_tour;
-        }
+    auto [neighbour, move] = ReorderBlockNeighborhood(k).
+        FindBestNeighbor(baseline_tour, input_data, route);
+    if (move) {
+        return neighbour;
     }
     return std::nullopt;
 }
 }
 
-Tour PostProcessSingleRoute(const Tour& initial_tour, const InputData& input_data) {
-    Tour best_tour = initial_tour.Copy();
+RoutePack PostProcessSingleRoute(const RoutePack& initial_tour, size_t route,
+                                 const InputData& input_data) {
+    RoutePack best_tour = initial_tour;
 
     bool improved = false;
     do {
         improved = false;
 
-        auto optimization_result = OptimizeKConsecutive<6>(best_tour, input_data);
+        auto optimization_result = OptimizeKConsecutive<6>(best_tour, route, input_data);
         if (optimization_result.has_value()) {
             best_tour = optimization_result.value();
             improved = true;
             continue;
         }
 
-        optimization_result = Run2Opt(best_tour, input_data);
+        optimization_result = Run2Opt(best_tour, route, input_data);
         if (optimization_result.has_value()) {
             best_tour = optimization_result.value();
             improved = true;
             continue;
         }
 
-        optimization_result = MoveVertex(best_tour, input_data);
+        optimization_result = MoveVertex(best_tour, route, input_data);
         if (optimization_result.has_value()) {
             best_tour = optimization_result.value();
             improved = true;
@@ -158,7 +85,7 @@ Tour PostProcessSingleRoute(const Tour& initial_tour, const InputData& input_dat
 }
 
 void PostProcessAllRoutes(RoutePack& routes, const InputData& input_data) {
-    for (auto& route : routes.routes) {
-        route = std::make_shared<Tour>(PostProcessSingleRoute(*route, input_data));
+    for (size_t route = 0; route < routes.Size(); ++route) {
+        routes = PostProcessSingleRoute(routes, route, input_data);
     }
 }
