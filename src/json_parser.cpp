@@ -38,8 +38,8 @@ namespace JsonParser {
 
     using json = nlohmann::json;
 
-    bool ParseInputDataFromJson(const std::string &jsonPath, InputData &arg) {
-        std::ifstream jsonFile(jsonPath);
+    bool ParseInputDataFromJson(const std::string &json_path, InputData &arg) {
+        std::ifstream jsonFile(json_path);
         if (!jsonFile) {
             std::cerr << "Can`t open input file with problem" << std::endl;
             return false;
@@ -52,8 +52,8 @@ namespace JsonParser {
         return true;
     }
 
-    bool ParseSolutionFromJson(const std::string &jsonPath, Solution &solution) {
-        std::ifstream jsonFile(jsonPath);
+    bool ParseSolutionFromJson(const std::string &json_path, Solution &solution) {
+        std::ifstream jsonFile(json_path);
         if (!jsonFile) {
             std::cerr << "Can`t open input file with solution" << std::endl;
             return false;
@@ -66,10 +66,10 @@ namespace JsonParser {
         return true;
     }
 
-    bool WriteSolutionToJsonFile(const std::string &jsonPath, Solution &&solution) {
+    bool WriteSolutionToJsonFile(const std::string &json_path, Solution &&solution) {
         nlohmann::json j = std::move(solution);
 
-        std::ofstream file(jsonPath);
+        std::ofstream file(json_path);
         if (!file) {
             std::cerr << "Can`t open output file to write solution" << std::endl;
             return false;
@@ -79,7 +79,7 @@ namespace JsonParser {
         return true;
     };
 
-    bool WriteMultiSolutionToJsonFile(const std::string &jsonPath, const std::vector<Solution> &solutions) {
+    bool WriteMultiSolutionToJsonFile(const std::string &json_path, const std::vector<Solution> &solutions) {
         // Создаем пустой JSON массив
         nlohmann::json j_array = nlohmann::json::array();
 
@@ -94,9 +94,9 @@ namespace JsonParser {
             j_array.push_back(j_obj);
         }
 
-        std::ofstream file(jsonPath);
+        std::ofstream file(json_path);
         if (!file.is_open()) {
-            std::cerr << "Could not open file for writing: " << jsonPath << std::endl;
+            std::cerr << "Could not open file for writing: " << json_path << std::endl;
             return false;
         }
 

@@ -15,7 +15,6 @@ void FirstStepAnswer::AddVertex(uint64_t vertex) {
     vertexes.push_back(vertex);
 }
 
-// Замени определение функции DoFirstStep на это:
 template<bool is_time_dependent>
 FirstStepAnswer DoFirstStep(const InputData &input, const std::vector<bool>& excluded_points) {
     auto max_dist = input.max_distance;
@@ -28,10 +27,9 @@ FirstStepAnswer DoFirstStep(const InputData &input, const std::vector<bool>& exc
                                                  std::vector<FirstStepAnswer>(points_count, FirstStepAnswer{}));
     dp[0][0].value = 0;
 
-    for (auto cur_load = 0; cur_load <= max_load; ++cur_load) {
+    for (size_t cur_load = 0; cur_load <= max_load; ++cur_load) {
         bool find_update_point = false;
-        for (auto j = 0; j < points_count; ++j) {
-            // КРИТИЧЕСКОЕ ИЗМЕНЕНИЕ: Пропускаем точку, если она исключена (кроме депо)
+        for (size_t j = 0; j < points_count; ++j) {
             if (j != 0 && excluded_points[j]) continue; 
 
             auto new_best_point_score = FirstStepAnswer::default_value;
@@ -39,7 +37,7 @@ FirstStepAnswer DoFirstStep(const InputData &input, const std::vector<bool>& exc
             uint64_t new_best_point_dist = 0;
             auto prev_best_point = -1;
 
-            for (auto i = 0; i < points_count; ++i) {
+            for (size_t i = 0; i < points_count; ++i) {
                 if (i == 0 && cur_load != 0) continue;
 
                 if (i != j &&
