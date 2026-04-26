@@ -33,6 +33,7 @@ else()
     message(STATUS "Using downloaded nlohmann_json")
 endif()
 
+# googletest
 find_package(GTest 3.2.0 QUIET)
 if(GTest_FOUND)
     message(STATUS "Using system GTest")
@@ -71,3 +72,22 @@ target_include_directories(tdtsp_solver PRIVATE
     ${CMAKE_SOURCE_DIR}/include
 )
 target_link_libraries(tdtsp_solver PRIVATE nlohmann_json::nlohmann_json)
+
+# Library for testing
+add_library(tdtsp_lib ${SOURCES})
+target_include_directories(tdtsp_lib PRIVATE
+        ${CMAKE_SOURCE_DIR}/include
+)
+
+enable_testing()
+set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR})
+add_executable(tests
+    test/move.cpp
+    test/neighborhood.cpp
+)
+target_include_directories(tests PRIVATE
+        ${CMAKE_SOURCE_DIR}/include
+)
+target_link_libraries(tests PRIVATE tdtsp_lib GTest::gtest_main)
+include(GoogleTest)
+gtest_discover_tests(tests)

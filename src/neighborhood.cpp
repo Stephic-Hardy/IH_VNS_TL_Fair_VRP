@@ -77,7 +77,7 @@ void Neighborhood::VisitEachMove(const RoutePack& sol,
     }
 }
 
-void RelocateNeighborhood::VisitEachMove(const RoutePack& sol, size_t route,
+void RemovePushBackNeighborhood::VisitEachMove(const RoutePack& sol, size_t route,
                                          std::function<void(const Move&)> evaluator) const {
     std::vector<std::unique_ptr<Move>> moves;
     size_t n = sol.GetRoute(route).Length();

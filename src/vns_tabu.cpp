@@ -16,7 +16,7 @@ std::deque<std::string> tabu_list_2opt;
 
 std::vector<std::unique_ptr<Neighborhood>> Neighborhoods() {
     std::vector<std::unique_ptr<Neighborhood>> neighborhoods;
-    neighborhoods.push_back(std::make_unique<RelocateNeighborhood>());
+    neighborhoods.push_back(std::make_unique<RemovePushBackNeighborhood>());
     neighborhoods.push_back(std::make_unique<SwapAdjNeighborhood>());
     neighborhoods.push_back(std::make_unique<SwapNeighborhood>());
     neighborhoods.push_back(std::make_unique<TwoOptNeighborhood>());

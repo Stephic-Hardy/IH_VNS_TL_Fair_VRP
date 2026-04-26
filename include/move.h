@@ -31,7 +31,9 @@ private:
     MoveTypes type_;
 };
 
-
+/**
+ * Removes a vertex from @p remove_pos and inserts into @p insert_pos
+ */
 class RemoveInsertMove : public Move {
 public:
     RemoveInsertMove(int r, size_t remove_pos, size_t insert_pos);
@@ -47,9 +49,12 @@ private:
     size_t remove_pos_, insert_pos_;
 };
 
+/**
+ * Swaps vertices at @p pos1 and @p pos2
+ */
 class SwapMove : public Move {
 public:
-    SwapMove(int r, size_t p1, size_t p2);
+    SwapMove(int r, size_t pos1, size_t pos2);
 
     RoutePack Apply(const RoutePack& sol) const override;
 
@@ -64,6 +69,9 @@ private:
     size_t pos1_, pos2_;
 };
 
+/**
+ * Reverses subroute from @p start to @p end
+ */
 class TwoOptMove : public Move {
 public:
     TwoOptMove(int r, size_t start, size_t end);
@@ -79,6 +87,9 @@ private:
     size_t start_pos_, end_pos_;
 };
 
+/**
+ * Moves subroute of length @p size starting at the @p start to the @p end
+ */
 class BlockRelocateMove : public Move {
 public:
     BlockRelocateMove(int r, size_t start, size_t size, size_t insert);
@@ -96,6 +107,9 @@ private:
     size_t start_pos_, length_, insert_pos_;
 };
 
+/**
+ * Replaces a subroute of length @p order.size() starting at @p start with provided @p order
+ */
 class ReorderBlockMove : public Move {
 public:
     ReorderBlockMove(int r, size_t start, std::vector<int> order);
