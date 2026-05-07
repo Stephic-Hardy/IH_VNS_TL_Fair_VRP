@@ -6,33 +6,36 @@ import networkx as nx
 import osmnx as ox
 from shapely.geometry import Point
 from pyrosm import OSM
+from functools import partial
+from concurrent.futures import ProcessPoolExecutor
 
-def get_next_index(directory, prefix):
-    """Находит следующий доступный порядковый номер для файлов."""
-    existing_files = [f for f in os.listdir(directory) if f.startswith(prefix) and f.endswith('.json')]
-    indices = [int(f.replace(prefix, '').replace('.json', '').replace('_coords', '')) for f in existing_files if f.replace(prefix, '').replace('.json', '').replace('_coords', '').isdigit()]
+def get_next_index(directory, prefix=""):
+    existing_files = [f for f in os.listdir(directory) if f.endswith('.json')]
+    indices = [int(f.replace(prefix, '').replace('.json', '')) for f in existing_files
+                if f.replace(prefix, '').replace('.json', '').isdigit()]
     return max(indices) + 1 if indices else 1
 
 def main():
-    parser = argparse.ArgumentParser(description="Генерация точек и матриц расстояний.")
-    parser.add_argument("-n", "--count", type=int, default=1, help="Количество генераций (по умолчанию 1)")
+    parser = argparse.ArgumentParser(description="Generator of problem datasets from real OSM data")
+    parser.add_argument("-n", "--count", type=int, default=1, help="Number of problems to generate")
+    parser.add_argument("-d", "--dir", type=str, default="../data/SPB", help="Dataset directory")
+    parser.add_argument("-o", "--osm", type=str, default="../lesnaya_area.pbf", help="Open Street Map data")
     args = parser.parse_args()
 
-    # Настраиваем пути
-    out_dir_problems = "../SPB_problems/Generates_SPB_problems/problems"
-    out_dir_coords = "../SPB_problems/Generates_SPB_problems/coords"
+    out_dir_problems = f"{args.dir}/problems"
+    out_dir_coords = f"{args.dir}/coords"
 
     os.makedirs(out_dir_problems, exist_ok=True)
     os.makedirs(out_dir_coords, exist_ok=True)
 
 
-    print("Загружаем карту и граф (это займет время, но только один раз)...")
-    osm = OSM("../lesnaya_area.pbf")
+    print("Loading Open Street Map data...")
+    osm = OSM(args.osm)
     nodes_data, edges_data = osm.get_network(network_type="driving", nodes=True)
     graph = osm.to_graph(nodes_data, edges_data, graph_type="networkx")
     graph = ox.add_edge_speeds(graph)
     graph = ox.add_edge_travel_times(graph)
-    print(f"Граф готов: {len(graph.nodes)} узлов")
+    print(f"Loaded Road Graph: {len(graph.nodes)} nodes")
 
     kalininsky = ox.geocode_to_gdf("Kalininsky District, Saint Petersburg, Russia").geometry.iloc[0]
     vyborgsky = ox.geocode_to_gdf("Vyborgsky District, Saint Petersburg, Russia").geometry.iloc[0]
@@ -43,7 +46,8 @@ def main():
     std_dev = 0.015
 
     for iteration in range(args.count):
-        print(f"\nГенерация {iteration + 1} из {args.count}")
+        print()
+        print(f"Generating {iteration + 1}/{args.count}")
         points = []
         while len(points) < NUM_POINTS:
             lat = np.random.normal(BASE_CORDS[0], std_dev)
@@ -54,9 +58,10 @@ def main():
         
         coords_list = [BASE_CORDS] + points
 
-        print("Считаем матрицу времени...")
+        print("Snapping points to the omp nodes...")
         nodes = ox.nearest_nodes(graph, [p[1] for p in coords_list], [p[0] for p in coords_list])
 
+        print("Calculating distance matrix...")
         dist_matrix = []
         for source in nodes:
             lengths = nx.single_source_dijkstra_path_length(graph, source, weight='travel_time')
@@ -75,19 +80,17 @@ def main():
             "point_service_times": [300] * (len(coords_list) - 1)
         }
 
-        next_idx = get_next_index(out_dir_problems, "Generated_problems_")
+        next_idx = get_next_index(out_dir_problems)
         
-        # Сохраняем задачу для C++
-        problem_path = os.path.join(out_dir_problems, f"Generated_problems_{next_idx}.json")
+        problem_path = os.path.join(out_dir_problems, f"{next_idx}.json")
         with open(problem_path, 'w') as f:
             json.dump(problem_data, f)
             
-        # Сохраняем координаты для отрисовки карты (чтобы не ломать парсер C++)
-        coords_path = os.path.join(out_dir_coords, f"Generated_problems_{next_idx}_coords.json")
+        coords_path = os.path.join(out_dir_coords, f"{next_idx}.json")
         with open(coords_path, 'w') as f:
             json.dump(coords_list, f)
 
-        print(f"Сохранено: {problem_path} (и координаты)")
+        print(f"Saved: {problem_path}")
 
 if __name__ == "__main__":
     main()
