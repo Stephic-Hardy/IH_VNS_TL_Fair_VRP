@@ -47,14 +47,18 @@ def evaluate_solution(prob_file, sol_file):
         total_time += agent.get("total_time", 0)
 
     gini = calculate_gini(agent_distances)
-    max_min_diff = max(agent_distances) - min(agent_distances) if agent_distances else 0
-    max_min_ratio = max(agent_distances) / min(agent_distances) if agent_distances else 0
+    max_distance = max(agent_distances) if agent_distances else 0
+    min_distance = min(agent_distances) if agent_distances else 0
+    max_min_diff = max_distance - min_distance if agent_distances else 0
+    max_min_ratio = max_distance / min_distance if agent_distances else 0
     std_dev = np.std(agent_distances) if agent_distances else 0
 
     return {
         "agents_used": len(routes),
         "total_distance": total_distance,
         "total_time": total_time,
+        "min_distance": min_distance,
+        "max_distance": max_distance,
         "fairness_gini": gini,
         "fairness_max_min_diff": max_min_diff,
         "fairness_max_min_ratio": max_min_ratio,
@@ -66,7 +70,7 @@ def main():
     parser = argparse.ArgumentParser(description="Aggregate benchmarking results")
     parser.add_argument("-d", "--dir", type=str, default="../data/SPB", help="Problem directory")
     parser.add_argument("-m", "--osm", type=str, default="../lesnaya_area.pbf", help="Open Street Map data")
-    parser.add_argument("-0", "--output_file", type=str, default="benchmark_results.csv", help="File to write benchmark results into")
+    parser.add_argument("-o", "--output_file", type=str, default="benchmark_results.csv", help="File to write benchmark results into")
     args = parser.parse_args()
 
     sol_files = glob.glob(f"{args.dir}/solutions/*.json")
@@ -90,7 +94,7 @@ def main():
 
 
     cols = ['problem_id', 'execution_time_sec', 'total_distance', 'total_time',
-            'fairness_gini', 'fairness_max_min_diff',  'fairness_max_min_ratio', 'agents_used']
+            'fairness_gini', 'fairness_max_min_diff',  'fairness_max_min_ratio', 'fairness_std_dev']
     extra_cols = [c for c in df.columns if c not in cols]
     df = df[cols + extra_cols]
     os.makedirs(os.path.join(args.dir, "statistics"), exist_ok=True)

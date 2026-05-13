@@ -89,4 +89,4 @@ echo "INPUT_JSON: $INPUT_JSON"
 echo "OUTPUT_JSON: $OUTPUT_JSON"
 echo "===================="
 
-../tdtsp_solver "$ST" "$AON" "$MAX_ITER" "$TIME_LIMIT" "$INPUT_JSON" "$OUTPUT_JSON"
+../tdtsp_solver "$ST" "$AON" "$MAX_ITER" "$TIME_LIMIT" "$INPUT_JSON" "$OUTPUT_JSON" --benchmark

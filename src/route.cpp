@@ -105,6 +105,9 @@ double Route::ComputeCost(const InputData& input) const {
 }
 
 double Route::ComputeDistance(const InputData& input) const {
+    if (cached_distance_.has_value()) {
+        return cached_distance_.value();
+    }
     double total_distance = 0.0;
 
     for (size_t i = 1; i < vertices_.size(); ++i) {
@@ -117,6 +120,7 @@ double Route::ComputeDistance(const InputData& input) const {
     int last = vertices_.back();
     total_distance += input.distance_matrix[last][0];
 
+    cached_distance_ = total_distance;
     return total_distance;
 }
 
@@ -132,6 +136,7 @@ std::ostream& Route::operator<<(std::ostream& out) const {
 void Route::InvalidateCache() const {
     cached_cost_ = std::nullopt;
     cached_value_ = std::nullopt;
+    cached_distance_ = std::nullopt;
 }
 
 bool Route::operator==(const Route& tour) const {

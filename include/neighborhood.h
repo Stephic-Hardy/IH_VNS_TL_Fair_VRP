@@ -10,7 +10,8 @@ public:
     virtual ~Neighborhood() = default;
 
     std::pair<RoutePack, std::unique_ptr<Move>> FindBestNeighbor(
-        const RoutePack& sol, const InputData& input_data) const;
+        const RoutePack& sol, const InputData& input_data,
+        std::function<double(const RoutePack&)> penalty) const;
 
     std::pair<RoutePack, std::unique_ptr<Move>> FindBestNeighbor(
         const RoutePack& sol, const InputData& input_data, size_t route) const;
@@ -19,8 +20,8 @@ protected:
     virtual void VisitEachMove(const RoutePack& sol, size_t route,
                                std::function<void(const Move&)> evaluate) const = 0;
 
-private:
-    void VisitEachMove(const RoutePack& sol, std::function<void(const Move&)> evaluate) const;
+    virtual void VisitEachMove(const RoutePack& sol,
+                               std::function<void(const Move&)> evaluate) const;
 };
 
 /**
@@ -115,4 +116,40 @@ protected:
 
 private:
     size_t k_;
+};
+
+class InterRelocateNeighborhood : public Neighborhood {
+protected:
+    void VisitEachMove(const RoutePack& sol,
+                       std::function<void(const Move&)> evaluator) const override;
+
+    void VisitEachMove(const RoutePack&, size_t, std::function<void(const Move&)>) const override {
+    }
+};
+
+class InterSwapNeighborhood : public Neighborhood {
+protected:
+    void VisitEachMove(const RoutePack& sol,
+                       std::function<void(const Move&)> evaluator) const override;
+
+    void VisitEachMove(const RoutePack&, size_t, std::function<void(const Move&)>) const override {
+    }
+};
+
+class CrossExchangeNeighborhood : public Neighborhood {
+protected:
+    void VisitEachMove(const RoutePack& sol,
+                       std::function<void(const Move&)> evaluator) const override;
+
+    void VisitEachMove(const RoutePack&, size_t, std::function<void(const Move&)>) const override {
+    }
+};
+
+class TwoOptStarNeighborhood : public Neighborhood {
+protected:
+    void VisitEachMove(const RoutePack& sol,
+                       std::function<void(const Move&)> evaluator) const override;
+
+    void VisitEachMove(const RoutePack&, size_t, std::function<void(const Move&)>) const override {
+    }
 };

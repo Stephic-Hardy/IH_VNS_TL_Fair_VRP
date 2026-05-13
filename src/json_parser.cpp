@@ -104,4 +104,36 @@ namespace JsonParser {
         file << j_array.dump(4);
         return true;
     }
+
+    bool WriteBenchmarkToJsonFile(const std::string &json_path, const std::vector<Solution> &solutions, const BenchmarkMetadata& meta) {
+        nlohmann::json j_root;
+
+        nlohmann::json j_meta;
+        j_meta["ST"] = meta.ST;
+        j_meta["AON"] = meta.AON;
+        j_meta["max_iter"] = meta.max_iter;
+        j_meta["time_limit"] = meta.time_limit;
+        j_meta["execution_time_sec"] = meta.total_execution_time_sec;
+        j_root["metadata"] = j_meta;
+
+        nlohmann::json j_array = nlohmann::json::array();
+        for (const auto& s : solutions) {
+            nlohmann::json j_obj;
+            j_obj["route"] = s.route;
+            j_obj["solution_size"] = s.solution_size;
+            j_obj["total_time"] = s.total_time;
+            j_obj["total_distance"] = s.total_distance;
+            j_obj["total_value"] = s.total_value;
+            j_array.push_back(j_obj);
+        }
+        j_root["solutions"] = j_array;
+
+        std::ofstream file(json_path);
+        if (!file.is_open()) {
+            return false;
+        }
+
+        file << j_root.dump(4);
+        return true;
+    }
 }

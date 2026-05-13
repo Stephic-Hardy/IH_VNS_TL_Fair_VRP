@@ -24,9 +24,10 @@ std::vector<std::unique_ptr<Neighborhood>> Neighborhoods() {
     neighborhoods.push_back(std::make_unique<BlockMoveBackwardNeighborhood>(5));
     return neighborhoods;
 }
+}
 
-RoutePack VnsWithoutTabu(const RoutePack& start_solution, const InputData& input_data,
-                         int max_iter, size_t route) {
+RoutePack VNSTabu::VnsWithoutTabu(const RoutePack& start_solution, const InputData& input_data,
+                                  int max_iter, size_t route) {
     RoutePack best = start_solution;
     double best_cost = best.GetRoute(route).ComputeCost(input_data);
     double best_value = best.GetRoute(route).ComputeValue(input_data);
@@ -79,7 +80,6 @@ RoutePack VnsWithoutTabu(const RoutePack& start_solution, const InputData& input
     }
 
     return best;
-}
 }
 
 RoutePack VNSTabu::VnsTabuAdvanced(const InputData& input_data,
@@ -250,7 +250,8 @@ RoutePack VNSTabu::VnsTabuAdvanced(const InputData& input_data,
             if (current_value >= threshold_value) {
                 LT.push_back(current);
             }
-            current.MutateRoute(route) = InsertionHeuristic::BuildInitialTour(agent_subset, input_data);
+            current.MutateRoute(route) = InsertionHeuristic::BuildInitialTour(
+                agent_subset, input_data);
         }
 
         if (LT.size() >= static_cast<size_t>(AON)) {
@@ -303,7 +304,8 @@ RoutePack VNSTabu::VnsTabuAdvanced(const InputData& input_data,
             std::mt19937 gen(rd());
             std::uniform_int_distribution<size_t> dist(0, LT_VNS.size() - 1);
             LT.clear();
-            current.MutateRoute(route) = InsertionHeuristic::BuildInitialTour(agent_subset, input_data);
+            current.MutateRoute(route) = InsertionHeuristic::BuildInitialTour(
+                agent_subset, input_data);
             double new_cost = current.GetRoute(route).ComputeCost(input_data);
             double new_value = current.GetRoute(route).ComputeValue(input_data);
             double new_distance = current.GetRoute(route).ComputeDistance(input_data);

@@ -11,11 +11,15 @@ enum MoveTypes {
     N5_MOVE_FWD_K,
     N6_MOVE_BWD_K,
     N7_REORDER_BLOCK,
+    N_INTER_RELOCATE,
+    N_INTER_SWAP,
+    N_CROSS_EXCHANGE,
+    N_TWO_OPT_STAR,
 };
 
 class Move : std::enable_shared_from_this<Move> {
 public:
-    Move(MoveTypes type);
+    Move(MoveTypes type, int route_idx = 0);
 
     virtual ~Move() = default;
 
@@ -27,7 +31,10 @@ public:
 
     virtual std::unique_ptr<Move> Clone() const = 0;
 
-private:
+    virtual std::vector<int> AffectedRoutes() const;
+
+protected:
+    int route_idx_;
     MoveTypes type_;
 };
 
@@ -124,4 +131,73 @@ private :
     int route_idx_;
     size_t start_pos_;
     std::vector<int> new_order_;
+};
+
+
+class InterRelocateMove : public Move {
+public:
+    InterRelocateMove(int f_r, int t_r, size_t f_p, size_t t_p);
+
+    RoutePack Apply(const RoutePack& sol) const override;
+
+    std::string GetTabuHash() const override;
+
+    std::unique_ptr<Move> Clone() const override;
+
+    std::vector<int> AffectedRoutes() const override;
+
+private:
+    int from_route_, to_route_;
+    size_t from_pos_, to_pos_;
+};
+
+class InterSwapMove : public Move {
+public:
+    InterSwapMove(int r1, int r2, size_t p1, size_t p2);
+
+    RoutePack Apply(const RoutePack& sol) const override;
+
+    std::string GetTabuHash() const override;
+
+    std::unique_ptr<Move> Clone() const override;
+
+    std::vector<int> AffectedRoutes() const override;
+
+private:
+    int route1_, route2_;
+    size_t pos1_, pos2_;
+};
+
+class CrossExchangeMove : public Move {
+public:
+    CrossExchangeMove(int r1, int r2, size_t start1, size_t len1, size_t start2, size_t len2);
+
+    RoutePack Apply(const RoutePack& sol) const override;
+
+    std::string GetTabuHash() const override;
+
+    std::unique_ptr<Move> Clone() const override;
+
+    std::vector<int> AffectedRoutes() const override;
+
+private:
+    int route1_, route2_;
+    size_t start1_, len1_, start2_, len2_;
+};
+
+class TwoOptStarMove : public Move {
+public:
+    TwoOptStarMove(int r1, int r2, size_t edge1_idx, size_t edge2_idx);
+
+    RoutePack Apply(const RoutePack& sol) const override;
+
+    std::string GetTabuHash() const override;
+
+    std::unique_ptr<Move> Clone() const override;
+
+    std::vector<int> AffectedRoutes() const override;
+
+private:
+    int route1_, route2_;
+    size_t edge1_idx_, edge2_idx_;
 };
