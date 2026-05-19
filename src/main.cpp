@@ -45,9 +45,9 @@ void PrintGiniDistance(const std::vector<Solution>& solutions) {
 }
 
 int main(int argc, char* argv[]) {
-    if (argc != 7) {
+    if (argc != 8) {
         std::cerr << "Usage: " << argv[0]
-            << " <ST> <AON> <MAX_ITER> <TIME_LIMIT> <INPUT_JSON> <OUTPUT_JSON>" << std::endl;
+            << " <ST> <AON> <MAX_ITER> <TIME_LIMIT> <INPUT_JSON> <OUTPUT_JSON> <FAIRNESS>" << std::endl;
         return 1;
     }
 
@@ -57,6 +57,9 @@ int main(int argc, char* argv[]) {
     int time_limit = std::stoi(argv[4]);
     std::string input_json = argv[5];
     std::string output_json = argv[6];
+    double fairness = std::stod(argv[7]);
+    if (fairness < 0.0) fairness = 0.0;
+    if (fairness > 1.0) fairness = 1.0;
 
     InputData input_data;
     if (!JsonParser::ParseInputDataFromJson(input_json, input_data)) {
@@ -134,7 +137,7 @@ int main(int argc, char* argv[]) {
     PostProcessAllRoutes(routes, input_data);
     SaveAndVisualize("BEFORE_BALANCE");
     std::cout << "\nStep 3: Starting inter-route fairness balancing..." << std::endl;
-    BalanceRoutes(routes, input_data);
+    BalanceRoutes(routes, input_data, fairness);
     PostProcessAllRoutes(routes, input_data);
     SaveAndVisualize("AFTER_BALANCE");
 

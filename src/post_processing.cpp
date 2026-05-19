@@ -166,9 +166,9 @@ void PostProcessAllRoutes(RoutePack& routes, const InputData& input_data) {
     }
 }
 
-void BalanceRoutes(RoutePack& routes, const InputData& input_data) {
+void BalanceRoutes(RoutePack& routes, const InputData& input_data, double fairness_importance) {
     bool local_improved = true;
-    const double penalty_weight = 1; 
+    const double penalty_weight = 1.0 - fairness_importance; 
 
     while (local_improved) {
         local_improved = false;
