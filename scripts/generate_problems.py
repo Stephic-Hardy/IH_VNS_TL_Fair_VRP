@@ -17,14 +17,11 @@ def main():
     parser = argparse.ArgumentParser(description="Генерация точек и матриц расстояний.")
     parser.add_argument("-n", "--count", type=int, default=1, help="Количество генераций (по умолчанию 1)")
     args = parser.parse_args()
-
-    # Настраиваем пути
     out_dir_problems = "../SPB_problems/Generates_SPB_problems/problems"
     out_dir_coords = "../SPB_problems/Generates_SPB_problems/coords"
 
     os.makedirs(out_dir_problems, exist_ok=True)
     os.makedirs(out_dir_coords, exist_ok=True)
-
 
     print("Загружаем карту и граф (это займет время, но только один раз)...")
     osm = OSM("../lesnaya_area.pbf")
@@ -33,30 +30,46 @@ def main():
     graph = ox.add_edge_speeds(graph)
     graph = ox.add_edge_travel_times(graph)
     print(f"Граф готов: {len(graph.nodes)} узлов")
-
     kalininsky = ox.geocode_to_gdf("Kalininsky District, Saint Petersburg, Russia").geometry.iloc[0]
     vyborgsky = ox.geocode_to_gdf("Vyborgsky District, Saint Petersburg, Russia").geometry.iloc[0]
     boundary = kalininsky.union(vyborgsky)
 
     BASE_CORDS = (60.00771529992149, 30.370180423873254)
-    NUM_POINTS = 200
+    NUM_POINTS = 200 
     std_dev = 0.015
 
     for iteration in range(args.count):
         print(f"\nГенерация {iteration + 1} из {args.count}")
+        
         points = []
+        used_node_ids = set()
+        
+
+        base_node, base_dist = ox.distance.nearest_nodes(graph, BASE_CORDS[1], BASE_CORDS[0], return_dist=True)
+        used_node_ids.add(base_node)
+
+        final_data_list = [[BASE_CORDS[0], BASE_CORDS[1], base_node]]
+
         while len(points) < NUM_POINTS:
+
             lat = np.random.normal(BASE_CORDS[0], std_dev)
             lon = np.random.normal(BASE_CORDS[1], std_dev)
+            
             p = Point(lon, lat)
             if boundary.contains(p):
-                points.append((lat, lon))
-        
-        coords_list = [BASE_CORDS] + points
+                node_id, dist = ox.distance.nearest_nodes(graph, lon, lat, return_dist=True)
+                
+                if dist <= 15.0 and node_id not in used_node_ids:
+                    used_node_ids.add(node_id)
+                    points.append((lat, lon))
+                    final_data_list.append([lat, lon, node_id])
+
+
+        nodes = [item[2] for item in final_data_list]
+
+        coords_for_save = [[item[0], item[1]] for item in final_data_list]
 
         print("Считаем матрицу времени...")
-        nodes = ox.nearest_nodes(graph, [p[1] for p in coords_list], [p[0] for p in coords_list])
-
         dist_matrix = []
         for source in nodes:
             lengths = nx.single_source_dijkstra_path_length(graph, source, weight='travel_time')
@@ -64,15 +77,15 @@ def main():
             dist_matrix.append(row)
 
         problem_data = {
-            "points_count": len(coords_list),
+            "points_count": len(final_data_list),
             "min_load": 10,
             "max_load": 35, 
             "max_time": 36000,
             "max_distance": 1000000,
             "distance_matrix": dist_matrix,
-            "time_matrix": [dist_matrix * 14], 
-            "point_scores": [1000] * (len(coords_list) - 1),
-            "point_service_times": [300] * (len(coords_list) - 1)
+            "time_matrix": [dist_matrix] * 14, 
+            "point_scores": [1000] * (len(final_data_list) - 1),
+            "point_service_times": [300] * (len(final_data_list) - 1)
         }
 
         next_idx = get_next_index(out_dir_problems, "Generated_problems_")
@@ -82,10 +95,10 @@ def main():
         with open(problem_path, 'w') as f:
             json.dump(problem_data, f)
             
-        # Сохраняем координаты для отрисовки карты (чтобы не ломать парсер C++)
+        # Сохраняем координаты в исходном формате (список списков [lat, lon])
         coords_path = os.path.join(out_dir_coords, f"Generated_problems_{next_idx}_coords.json")
         with open(coords_path, 'w') as f:
-            json.dump(coords_list, f)
+            json.dump(coords_for_save, f)
 
         print(f"Сохранено: {problem_path} (и координаты)")
 

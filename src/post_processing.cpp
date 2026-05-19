@@ -168,6 +168,7 @@ void PostProcessAllRoutes(RoutePack& routes, const InputData& input_data) {
 
 void BalanceRoutes(RoutePack& routes, const InputData& input_data) {
     bool local_improved = true;
+    const double penalty_weight = 1; 
 
     while (local_improved) {
         local_improved = false;
@@ -186,6 +187,7 @@ void BalanceRoutes(RoutePack& routes, const InputData& input_data) {
         auto& r_max = *routes.routes[max_idx];
         auto& r_min = *routes.routes[min_idx];
         double current_diff = dist_max - dist_min;
+        double old_sum = dist_max + dist_min;
 
         if (current_diff < 10.0) break;
 
@@ -214,8 +216,14 @@ void BalanceRoutes(RoutePack& routes, const InputData& input_data) {
 
                 double new_min_dist = temp_rmin.ComputeDistance(input_data);
                 double new_diff = std::abs(new_max_dist - new_min_dist);
+                double new_sum = new_max_dist + new_min_dist;
+                double sum_increase = std::max(0.0, new_sum - old_sum);
 
-                if (new_diff < best_new_diff - 1.0 && std::max(new_max_dist, new_min_dist) < dist_max) {
+
+                if (new_diff < best_new_diff - 1.0 && 
+                    std::max(new_max_dist, new_min_dist) < dist_max &&
+                    (best_new_diff - new_diff) > (sum_increase * penalty_weight)) {
+                    
                     best_new_diff = new_diff;
                     best_v_idx = i;
                     best_insert_pos = j;
@@ -225,7 +233,6 @@ void BalanceRoutes(RoutePack& routes, const InputData& input_data) {
                 }
             }
         }
-
         if (!found_move) {
             for (size_t i = 1; i < r_max.vertices.size(); ++i) {
                 for (size_t j = 1; j < r_min.vertices.size(); ++j) {
@@ -243,8 +250,13 @@ void BalanceRoutes(RoutePack& routes, const InputData& input_data) {
                     double n_max_d = temp_rmax.ComputeDistance(input_data);
                     double n_min_d = temp_rmin.ComputeDistance(input_data);
                     double new_diff = std::abs(n_max_d - n_min_d);
+                    double new_sum = n_max_d + n_min_d;
+                    double sum_increase = std::max(0.0, new_sum - old_sum);
 
-                    if (new_diff < best_new_diff - 1.0 && std::max(n_max_d, n_min_d) < dist_max) {
+                    if (new_diff < best_new_diff - 1.0 && 
+                        std::max(n_max_d, n_min_d) < dist_max &&
+                        (best_new_diff - new_diff) > (sum_increase * penalty_weight)) {
+                        
                         best_new_diff = new_diff;
                         best_rmax_cand = temp_rmax;
                         best_rmin_cand = temp_rmin;
@@ -255,10 +267,10 @@ void BalanceRoutes(RoutePack& routes, const InputData& input_data) {
             }
         }
 
+
         if (found_move) {
             routes.routes[max_idx] = std::make_shared<Tour>(best_rmax_cand);
             routes.routes[min_idx] = std::make_shared<Tour>(best_rmin_cand);
-
             routes.routes[max_idx] = std::make_shared<Tour>(PostProcessSingleRoute(*routes.routes[max_idx], input_data));
             routes.routes[min_idx] = std::make_shared<Tour>(PostProcessSingleRoute(*routes.routes[min_idx], input_data));
 

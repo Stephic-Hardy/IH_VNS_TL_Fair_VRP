@@ -19,7 +19,7 @@ def analyze_agent_route(input_json_path, output_json_path, agent_index=0):
     time_matrix = input_data['time_matrix']
     scores = input_data['point_scores']
     service_times = input_data['point_service_times']
-    time_duration = input_data.get('time_duration', 3600) # По умолчанию час, если нет в json
+    time_duration = input_data.get('time_duration', 3600)
 
     print(f"=== Анализ маршрута Агента №{agent_index} ===")
     print(f"{'Откуда':<8} -> {'Куда':<8} | {'Расст.':<10} | {'Время':<10} | {'Прибытие':<10} | {'Value':<6}")
