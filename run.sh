@@ -7,6 +7,7 @@ MAX_ITER="450"
 TIME_LIMIT="30"
 INPUT_JSON="vrp_problems/0.json"
 OUTPUT_JSON="solution.json"
+FAIRNESS="0.5"
 
 
 show_help() {
@@ -20,14 +21,15 @@ show_help() {
     echo "  -t VALUE    TIME_LIMIT in seconds (default: 60)"
     echo "  -f FILE     Input JSON file path (default: vrp_problems/0.json)"
     echo "  -o FILE     Output JSON file path (default: solution.json)"
+    echo "  -r VALUE    Fairness importance (default: 0.5)"
     echo "  -h          Show this help message"
     echo ""
     echo "Example:"
-    echo "  $0 -s 0.01 -a 5 -i 150 -t 60 -f vrp_problems/0.json -o my_solution.json"
+    echo "  $0 -s 0.01 -a 5 -i 150 -t 60 -f vrp_problems/0.json -o my_solution.json -r 0.5"
 }
 
 
-while getopts "s:a:i:t:f:o:h" opt; do
+while getopts "s:a:i:t:f:o:r:h" opt; do
     case $opt in
         s)
             ST="$OPTARG"
@@ -46,6 +48,9 @@ while getopts "s:a:i:t:f:o:h" opt; do
             ;;
         o)
             OUTPUT_JSON="$OPTARG"
+            ;;
+        r)
+            FAIRNESS="$OPTARG"
             ;;
         h)
             show_help
@@ -87,6 +92,7 @@ echo "MAX_ITERATION_WITHOUT_IMPROVE: $MAX_ITER"
 echo "TIME_LIMIT: $TIME_LIMIT"
 echo "INPUT_JSON: $INPUT_JSON"
 echo "OUTPUT_JSON: $OUTPUT_JSON"
+echo "FAIRNESS: $FAIRNESS"
 echo "===================="
 
-../tdtsp_solver "$ST" "$AON" "$MAX_ITER" "$TIME_LIMIT" "$INPUT_JSON" "$OUTPUT_JSON"
+../tdtsp_solver "$ST" "$AON" "$MAX_ITER" "$TIME_LIMIT" "$INPUT_JSON" "$OUTPUT_JSON" "$FAIRNESS"
