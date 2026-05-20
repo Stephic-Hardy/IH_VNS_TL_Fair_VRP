@@ -1,4 +1,4 @@
-#include "tour.h"
+#include "route.h"
 #include "problem_arguments.hpp"
 
 #include <algorithm>
@@ -6,20 +6,21 @@
 #include <chrono>
 #include <iostream>
 
-Tour::Tour(size_t n) : vertices(n), cached_cost_(std::nullopt), cached_value_(std::nullopt) {
-    if (n == 0) {
-        return;
-    }
-
-    for (size_t i = 0; i < n; ++i) {
-        vertices[i] = i;
-    }
-    auto seed = std::chrono::steady_clock::now().time_since_epoch().count();
-    std::mt19937 gen(static_cast<unsigned>(seed));
-    std::shuffle(vertices.begin() + 1, vertices.end(), gen);
+Route::Route() : cached_cost_(std::nullopt), cached_value_(std::nullopt) {
 }
 
-double Tour::ComputeValue(const InputData& input) const {
+Route::Route(std::vector<int> vertices) : vertices_(std::move(vertices)) {
+}
+
+size_t Route::Length() const {
+    return vertices_.size();
+}
+
+const std::vector<int>& Route::Vertices() const {
+    return vertices_;
+}
+
+double Route::ComputeValue(const InputData& input) const {
     if (cached_value_.has_value()) {
         return cached_value_.value();
     }
@@ -27,10 +28,10 @@ double Tour::ComputeValue(const InputData& input) const {
     double total_value = 0.0;
     double current_time = 0.0;
 
-    for (size_t i = 1; i < vertices.size(); ++i) {
+    for (size_t i = 1; i < vertices_.size(); ++i) {
 
-        int from = vertices[i - 1];
-        int to = vertices[i];
+        int from = vertices_[i - 1];
+        int to = vertices_[i];
 
         if (to != 0) {
             total_value += input.point_scores[to - 1];
@@ -51,7 +52,7 @@ double Tour::ComputeValue(const InputData& input) const {
     }
 
     // Учитываем возврат в депо
-    int last = vertices.back();
+    int last = vertices_.back();
     int64_t return_time = input.get_time_dependent_cost(
         static_cast<uint64_t>(current_time),
         last,
@@ -65,16 +66,16 @@ double Tour::ComputeValue(const InputData& input) const {
     return total_value;
 }
 
-double Tour::ComputeCost(const InputData& input) const {
+double Route::ComputeCost(const InputData& input) const {
     if (cached_cost_.has_value()) {
         return cached_cost_.value();
     }
 
     double current_time = 0.0;
 
-    for (size_t i = 1; i < vertices.size(); ++i) {
-        int from = vertices[i - 1];
-        int to = vertices[i];
+    for (size_t i = 1; i < vertices_.size(); ++i) {
+        int from = vertices_[i - 1];
+        int to = vertices_[i];
 
         int64_t travel_time = input.get_time_dependent_cost(
             static_cast<uint64_t>(current_time),
@@ -91,7 +92,7 @@ double Tour::ComputeCost(const InputData& input) const {
     }
 
     // Возврат в депо
-    int last = vertices.back();
+    int last = vertices_.back();
     int64_t return_time = input.get_time_dependent_cost(
         static_cast<uint64_t>(current_time),
         last,
@@ -103,35 +104,40 @@ double Tour::ComputeCost(const InputData& input) const {
     return current_time;
 }
 
-double Tour::ComputeDistance(const InputData& input) const {
+double Route::ComputeDistance(const InputData& input) const {
     double total_distance = 0.0;
 
-    for (size_t i = 1; i < vertices.size(); ++i) {
-        int from = vertices[i - 1];
-        int to = vertices[i];
+    for (size_t i = 1; i < vertices_.size(); ++i) {
+        int from = vertices_[i - 1];
+        int to = vertices_[i];
 
         total_distance += input.distance_matrix[from][to];
     }
 
-    int last = vertices.back();
+    int last = vertices_.back();
     total_distance += input.distance_matrix[last][0];
 
     return total_distance;
 }
 
-void Tour::Print() const {
-    std::cout << "Tour: ";
-    for (int v : vertices) {
-        std::cout << v << " ";
+std::ostream& Route::operator<<(std::ostream& out) const {
+    out << "Tour: ";
+    for (int v : vertices_) {
+        out << v << " ";
     }
-    std::cout << std::endl;
+    out << std::endl;
+    return out;
 }
 
-void Tour::InvalidateCache() const {
+void Route::InvalidateCache() const {
     cached_cost_ = std::nullopt;
     cached_value_ = std::nullopt;
 }
 
-Tour Tour::Copy() const {
-    return Tour(*this);
+bool Route::operator==(const Route& tour) const {
+    return vertices_ == tour.vertices_;
+}
+
+bool Route::operator!=(const Route& tour) const {
+    return vertices_ != tour.vertices_;
 }

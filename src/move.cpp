@@ -1,5 +1,7 @@
 #include "move.h"
 
+#include <algorithm>
+
 Move::Move(MoveTypes type) : type_(type) {
 }
 
@@ -7,26 +9,34 @@ MoveTypes Move::Type() const {
     return type_;
 }
 
-RemoveInsertMove::RemoveInsertMove(int r, size_t pos)
-    : Move(N1_REMOVE_INSERT), route_idx_(r), pos_(pos) {
+RemoveInsertMove::RemoveInsertMove(int r, size_t remove_pos, size_t insert_pos)
+    : Move(N1_REMOVE_INSERT), route_idx_(r), remove_pos_(remove_pos), insert_pos_(insert_pos) {
 }
 
 RoutePack RemoveInsertMove::Apply(const RoutePack& sol) const {
     RoutePack new_sol = sol;
-    new_sol.DeepCopyRoute(route_idx_);
 
-    auto& vec = new_sol.routes[route_idx_]->vertices;
-    int vertex = vec[pos_];
-    vec.erase(vec.begin() + pos_);
-    vec.push_back(vertex);
+    new_sol.MutateRoute(route_idx_).Update([this](auto& vertices) {
+        int vertex = vertices[remove_pos_];
+        if (remove_pos_ < insert_pos_) {
+            std::copy(vertices.begin() + remove_pos_ + 1,
+                      vertices.begin() + insert_pos_ + 1,
+                      vertices.begin() + remove_pos_);
+            vertices[insert_pos_] = vertex;
+        } else {
+            std::copy(vertices.begin() + insert_pos_,
+                      vertices.begin() + remove_pos_,
+                      vertices.begin() + insert_pos_ + 1);
+            vertices[insert_pos_] = vertex;
+        }
+    });
 
-    new_sol.routes[route_idx_]->InvalidateCache();
     return new_sol;
 }
 
 std::string RemoveInsertMove::GetTabuHash() const {
     return "RELOC_" + std::to_string(route_idx_) + "_" +
-           std::to_string(pos_);
+           std::to_string(remove_pos_);
 }
 
 std::unique_ptr<Move> RemoveInsertMove::Clone() const {
@@ -47,11 +57,11 @@ SwapMove::SwapMove(int r, size_t pos1, size_t pos2) : Move(DetermineType(pos1, p
 
 RoutePack SwapMove::Apply(const RoutePack& sol) const {
     RoutePack new_sol = sol;
-    new_sol.DeepCopyRoute(route_idx_);
-    std::swap(new_sol.routes[route_idx_]->vertices[pos1_],
-              new_sol.routes[route_idx_]->vertices[pos2_]);
 
-    new_sol.routes[route_idx_]->InvalidateCache();
+    new_sol.MutateRoute(route_idx_).Update([this](auto& vertices) {
+        std::swap(vertices[pos1_], vertices[pos2_]);
+    });
+
     return new_sol;
 }
 
@@ -72,11 +82,11 @@ TwoOptMove::TwoOptMove(int r, size_t start, size_t end) : Move(N4_2OPT), route_i
 
 RoutePack TwoOptMove::Apply(const RoutePack& sol) const {
     RoutePack new_sol = sol;
-    new_sol.DeepCopyRoute(route_idx_);
-    auto& vec = new_sol.routes[route_idx_]->vertices;
-    std::reverse(vec.begin() + start_pos_, vec.begin() + end_pos_ + 1);
 
-    new_sol.routes[route_idx_]->InvalidateCache();
+    new_sol.MutateRoute(route_idx_).Update([this](auto& vertices) {
+        std::reverse(vertices.begin() + start_pos_, vertices.begin() + end_pos_ + 1);
+    });
+
     return new_sol;
 }
 
@@ -96,17 +106,16 @@ BlockRelocateMove::BlockRelocateMove(int r, size_t start, size_t size, size_t in
 
 RoutePack BlockRelocateMove::Apply(const RoutePack& sol) const {
     RoutePack new_sol = sol;
-    new_sol.DeepCopyRoute(route_idx_);
-    auto& vec = new_sol.routes[route_idx_]->vertices;
 
-    auto begin_it = vec.begin() + start_pos_;
-    auto end_it = begin_it + length_;
-    std::vector<int> block(begin_it, end_it);
+    new_sol.MutateRoute(route_idx_).Update([this](auto& vertices) {
+        auto begin_it = vertices.begin() + start_pos_;
+        auto end_it = begin_it + length_;
+        std::vector<int> block(begin_it, end_it);
 
-    vec.erase(begin_it, end_it);
-    vec.insert(vec.begin() + insert_pos_, block.begin(), block.end());
+        vertices.erase(begin_it, end_it);
+        vertices.insert(vertices.begin() + insert_pos_, block.begin(), block.end());
+    });
 
-    new_sol.routes[route_idx_]->InvalidateCache();
     return new_sol;
 }
 
@@ -125,4 +134,27 @@ MoveTypes BlockRelocateMove::DetermineType(size_t start, size_t insert) {
         return N5_MOVE_FWD_K;
     }
     return N6_MOVE_BWD_K;
+}
+
+ReorderBlockMove::ReorderBlockMove(int r, size_t start, std::vector<int> order)
+    : Move(N7_REORDER_BLOCK), route_idx_(r), start_pos_(start), new_order_(std::move(order)) {
+}
+
+RoutePack ReorderBlockMove::Apply(const RoutePack& sol) const {
+    RoutePack new_sol = sol;
+
+    new_sol.MutateRoute(route_idx_).Update([this](auto& vertices) {
+        std::copy(new_order_.begin(), new_order_.end(), vertices.begin() + start_pos_);
+    });
+
+    return new_sol;
+}
+
+std::string ReorderBlockMove::GetTabuHash() const {
+    return "REORDER_" + std::to_string(route_idx_) + "_" +
+           std::to_string(start_pos_) + "_" + std::to_string(new_order_.size());
+}
+
+std::unique_ptr<Move> ReorderBlockMove::Clone() const {
+    return std::make_unique<ReorderBlockMove>(*this);
 }

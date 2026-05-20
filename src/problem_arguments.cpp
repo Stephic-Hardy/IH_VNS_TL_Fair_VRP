@@ -10,6 +10,7 @@ bool ParseProgramArguments(int argc, char *argv[], ProgramArguments &args) {
         switch (opt) {
             case 'p': {
                 args.problemJsonPath = optarg;
+                break;
             }
             case 's': {
                 args.solutionJsonPath = optarg;

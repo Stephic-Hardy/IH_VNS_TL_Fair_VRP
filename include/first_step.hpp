@@ -3,10 +3,9 @@
 #include <cstdint>
 #include <vector>
 #include <ostream>
-#include <unordered_set>
 #include <limits>
 
-#include "../utils/problem_arguments.hpp"
+#include "problem_arguments.hpp"
 
 struct FirstStepAnswer {
 

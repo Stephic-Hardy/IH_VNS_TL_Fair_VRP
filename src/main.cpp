@@ -6,7 +6,7 @@
 #include <numeric>
 #include <iomanip>
 
-#include "tour.h"
+#include "route.h"
 #include "vns_tabu.h"
 #include "json_parser.hpp"
 #include "post_processing.h"
@@ -92,17 +92,14 @@ int main(int argc, char* argv[]) {
         }
 
         // Construct initial route
-        Tour initial_tour(1);
-        for (int v : subset_to_visit) {
-            initial_tour.vertices.push_back(v);
-        }
-        routes.AddRoute(std::move(initial_tour));
+        subset_to_visit.insert(subset_to_visit.begin(), 0);
+        routes.AddRoute(Route(subset_to_visit));
 
         // Run the Variable Neighborhood Search Algorithm
-        std::cout << "Agent " << routes.routes.size() << ": optimizing " << subset_to_visit.size()
+        std::cout << "Agent " << routes.Size() << ": optimizing " << subset_to_visit.size()
             << " points..." << std::endl;
         routes = VNSTabu::VnsTabuAdvanced(
-            input_data, ST, AON, max_iter, time_limit, routes, routes.routes.size() - 1
+            input_data, ST, AON, max_iter, time_limit, routes, routes.Size() - 1
             );
 
         // Remove visited vertices
@@ -119,9 +116,9 @@ int main(int argc, char* argv[]) {
 
     std::vector<Solution> all_agent_solutions;
 
-    for (const auto& tour : routes.routes) {
+    for (const auto& tour : routes.Routes()) {
         Solution sol;
-        sol.route = std::vector<uint64_t>(tour->vertices.begin(), tour->vertices.end());
+        sol.route = std::vector<uint64_t>(tour->Vertices().begin(),tour->Vertices().end());
         if (sol.route.back() != 0) {
             sol.route.push_back(0);
         }

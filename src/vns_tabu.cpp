@@ -9,8 +9,6 @@
 #include <algorithm>
 #include <deque>
 #include <iostream>
-#include <iomanip>
-#include <sstream>
 
 namespace {
 std::deque<std::string> tabu_list_moves;
@@ -18,7 +16,7 @@ std::deque<std::string> tabu_list_2opt;
 
 std::vector<std::unique_ptr<Neighborhood>> Neighborhoods() {
     std::vector<std::unique_ptr<Neighborhood>> neighborhoods;
-    neighborhoods.push_back(std::make_unique<RelocateNeighborhood>());
+    neighborhoods.push_back(std::make_unique<RemovePushBackNeighborhood>());
     neighborhoods.push_back(std::make_unique<SwapAdjNeighborhood>());
     neighborhoods.push_back(std::make_unique<SwapNeighborhood>());
     neighborhoods.push_back(std::make_unique<TwoOptNeighborhood>());
@@ -30,9 +28,9 @@ std::vector<std::unique_ptr<Neighborhood>> Neighborhoods() {
 RoutePack VnsWithoutTabu(const RoutePack& start_solution, const InputData& input_data,
                          int max_iter, size_t route) {
     RoutePack best = start_solution;
-    double best_cost = best.routes[route]->ComputeCost(input_data);
-    double best_value = best.routes[route]->ComputeValue(input_data);
-    double best_distance = best.routes[route]->ComputeDistance(input_data);
+    double best_cost = best.GetRoute(route).ComputeCost(input_data);
+    double best_value = best.GetRoute(route).ComputeValue(input_data);
+    double best_distance = best.GetRoute(route).ComputeDistance(input_data);
 
     RoutePack current = best;
 
@@ -43,13 +41,13 @@ RoutePack VnsWithoutTabu(const RoutePack& start_solution, const InputData& input
 
         for (auto& neighborhood : neighborhoods) {
             auto [neighbor, _] = neighborhood->FindBestNeighbor(current, input_data, route);
-            double neighbor_cost = neighbor.routes[route]->ComputeCost(input_data);
-            double neighbor_value = neighbor.routes[route]->ComputeValue(input_data);
-            double neighbor_distance = neighbor.routes[route]->ComputeDistance(input_data);
+            double neighbor_cost = neighbor.GetRoute(route).ComputeCost(input_data);
+            double neighbor_value = neighbor.GetRoute(route).ComputeValue(input_data);
+            double neighbor_distance = neighbor.GetRoute(route).ComputeDistance(input_data);
 
-            double current_cost = current.routes[route]->ComputeCost(input_data);
-            double current_value = current.routes[route]->ComputeValue(input_data);
-            double current_distance = current.routes[route]->ComputeDistance(input_data);
+            double current_cost = current.GetRoute(route).ComputeCost(input_data);
+            double current_value = current.GetRoute(route).ComputeValue(input_data);
+            double current_distance = current.GetRoute(route).ComputeDistance(input_data);
 
             // Сравнение: Value -> время -> расстояние
             if (neighbor_value > best_value + 1e-9 ||
@@ -102,16 +100,16 @@ RoutePack VNSTabu::VnsTabuAdvanced(const InputData& input_data,
     std::cout << "=================================================================" << std::endl;
 
     std::vector<int> agent_subset;
-    for (int v : initial_solution.routes[route]->vertices) {
+    for (int v : initial_solution.GetRoute(route).Vertices()) {
         if (v != 0) {
             agent_subset.push_back(v);
         }
     }
 
     RoutePack best_global = initial_solution;
-    double best_global_cost = best_global.routes[route]->ComputeCost(input_data);
-    double best_global_value = best_global.routes[route]->ComputeValue(input_data);
-    double best_global_distance = best_global.routes[route]->ComputeDistance(input_data);
+    double best_global_cost = best_global.GetRoute(route).ComputeCost(input_data);
+    double best_global_value = best_global.GetRoute(route).ComputeValue(input_data);
+    double best_global_distance = best_global.GetRoute(route).ComputeDistance(input_data);
     RoutePack current = best_global;
 
     tabu_list_moves.clear();
@@ -149,9 +147,9 @@ RoutePack VNSTabu::VnsTabuAdvanced(const InputData& input_data,
                 continue;
             }
 
-            double neighbor_cost = neighbor.routes[route]->ComputeCost(input_data);
-            double neighbor_value = neighbor.routes[route]->ComputeValue(input_data);
-            double neighbor_distance = neighbor.routes[route]->ComputeDistance(input_data);
+            double neighbor_cost = neighbor.GetRoute(route).ComputeCost(input_data);
+            double neighbor_value = neighbor.GetRoute(route).ComputeValue(input_data);
+            double neighbor_distance = neighbor.GetRoute(route).ComputeDistance(input_data);
 
             bool in_tabu = false;
             std::string move_hash;
@@ -202,9 +200,9 @@ RoutePack VNSTabu::VnsTabuAdvanced(const InputData& input_data,
                     continue;
                 }
             } else if (!in_tabu) {
-                double current_value = current.routes[route]->ComputeValue(input_data);
-                double current_cost = current.routes[route]->ComputeCost(input_data);
-                double current_distance = current.routes[route]->ComputeDistance(input_data);
+                double current_value = current.GetRoute(route).ComputeValue(input_data);
+                double current_cost = current.GetRoute(route).ComputeCost(input_data);
+                double current_distance = current.GetRoute(route).ComputeDistance(input_data);
 
                 // Новый порядок оптимизации: Value -> время -> расстояние
                 if ((neighbor_value > current_value + 1e-9 ||
@@ -244,7 +242,7 @@ RoutePack VNSTabu::VnsTabuAdvanced(const InputData& input_data,
             }
         }
 
-        double current_value = current.routes[route]->ComputeValue(input_data);
+        double current_value = current.GetRoute(route).ComputeValue(input_data);
         double threshold_value = best_global_value * (1.0 - ST);
         // Для value улучшение это увеличение, поэтому threshold ниже
 
@@ -252,8 +250,7 @@ RoutePack VNSTabu::VnsTabuAdvanced(const InputData& input_data,
             if (current_value >= threshold_value) {
                 LT.push_back(current);
             }
-            current.routes[route] = std::make_shared<Tour>(
-                InsertionHeuristic::BuildInitialTour(agent_subset, input_data));
+            current.MutateRoute(route) = InsertionHeuristic::BuildInitialTour(agent_subset, input_data);
         }
 
         if (LT.size() >= static_cast<size_t>(AON)) {
@@ -262,9 +259,9 @@ RoutePack VNSTabu::VnsTabuAdvanced(const InputData& input_data,
                 RoutePack improved = VnsWithoutTabu(LT[i], input_data, 50, route);
                 LT_VNS.push_back(improved);
 
-                double improved_cost = improved.routes[route]->ComputeCost(input_data);
-                double improved_value = improved.routes[route]->ComputeValue(input_data);
-                double improved_distance = improved.routes[route]->ComputeDistance(input_data);
+                double improved_cost = improved.GetRoute(route).ComputeCost(input_data);
+                double improved_value = improved.GetRoute(route).ComputeValue(input_data);
+                double improved_distance = improved.GetRoute(route).ComputeDistance(input_data);
 
                 // Новый порядок оптимизации: Value -> время -> расстояние
                 if ((improved_value > best_global_value + 1e-9 ||
@@ -306,11 +303,10 @@ RoutePack VNSTabu::VnsTabuAdvanced(const InputData& input_data,
             std::mt19937 gen(rd());
             std::uniform_int_distribution<size_t> dist(0, LT_VNS.size() - 1);
             LT.clear();
-            current.routes[route] = std::make_shared<Tour>(
-                InsertionHeuristic::BuildInitialTour(agent_subset, input_data));
-            double new_cost = current.routes[route]->ComputeCost(input_data);
-            double new_value = current.routes[route]->ComputeValue(input_data);
-            double new_distance = current.routes[route]->ComputeDistance(input_data);
+            current.MutateRoute(route) = InsertionHeuristic::BuildInitialTour(agent_subset, input_data);
+            double new_cost = current.GetRoute(route).ComputeCost(input_data);
+            double new_value = current.GetRoute(route).ComputeValue(input_data);
+            double new_distance = current.GetRoute(route).ComputeDistance(input_data);
 
             if ((new_value > best_global_value + 1e-9 ||
                  (std::abs(new_value - best_global_value) < 1e-9 && new_cost < best_global_cost -
