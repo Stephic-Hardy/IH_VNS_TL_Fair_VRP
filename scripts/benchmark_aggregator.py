@@ -4,6 +4,7 @@ import json
 import argparse
 import pandas as pd
 import numpy as np
+from pathlib import Path
 
 def calculate_gini(distances):
     if not distances:
@@ -59,24 +60,25 @@ def evaluate_solution(prob_file, sol_file):
         "fairness_max_min_diff": max_min_diff,
         "fairness_max_min_ratio": max_min_ratio,
         "fairness_std_dev": std_dev,
-        **metadata # Injects ST, AON, exec_time if present
+        **metadata
     }
 
 def main():
     parser = argparse.ArgumentParser(description="Aggregate benchmarking results")
-    parser.add_argument("-d", "--dir", type=str, default="../data/SPB", help="Problem directory")
-    parser.add_argument("-m", "--osm", type=str, default="../lesnaya_area.pbf", help="Open Street Map data")
-    parser.add_argument("-0", "--output_file", type=str, default="benchmark_results.csv", help="File to write benchmark results into")
+    parser.add_argument("-d", "--dataset", type=str, default="SPB", help="Dataset name (will be searched inside the ../data/ directory)")
+    parser.add_argument("--dir", type=str, default="../data/", help="Datasets directory")
+    parser.add_argument("-o", "--output", type=str, default="benchmark_results.csv", help="File to write benchmark results into")
     args = parser.parse_args()
 
-    sol_files = glob.glob(f"{args.dir}/solutions/*.json")
+    dataset_dir = Path(args.dir) / args.dataset
+    sol_files = glob.glob(f"{dataset_dir}/solutions/*.json")
     results = []
 
     print(f"Found {len(sol_files)} solutions")
 
     for sol_file in sol_files:
         idx = os.path.basename(sol_file).replace(".json", "")
-        prob_file = f"{args.dir}/problems/{idx}.json"
+        prob_file = f"{dataset_dir}/problems/{idx}.json"
 
         if not os.path.exists(prob_file):
             print(f"Warning: Problem file for idx {idx} missing. Skipping")
@@ -93,8 +95,8 @@ def main():
             'fairness_gini', 'fairness_max_min_diff',  'fairness_max_min_ratio', 'agents_used']
     extra_cols = [c for c in df.columns if c not in cols]
     df = df[cols + extra_cols]
-    os.makedirs(os.path.join(args.dir, "statistics"), exist_ok=True)
-    output_file = os.path.join(args.dir, "statistics", args.output_file)
+    os.makedirs(os.path.join(dataset_dir, "statistics"), exist_ok=True)
+    output_file = os.path.join(dataset_dir, "statistics", args.output_file)
     df.to_csv(output_file, index=False)
     print(f"Saved to {output_file}")
     print(df.head())
