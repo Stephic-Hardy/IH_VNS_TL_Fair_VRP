@@ -10,7 +10,7 @@ struct ProgramArguments {
     uint64_t time;
 };
 
-bool ParseProgramArguments(int argc, char *argv[], ProgramArguments &args);
+bool ParseProgramArguments(int argc, char* argv[], ProgramArguments& args);
 
 struct InputData {
     /// количество точек в задаче, включая склад.
@@ -38,10 +38,11 @@ struct InputData {
 
     /// 30 минут в секундах для TD цены перехода
     static constexpr uint64_t time_duration = 30 * 60;
+
     int64_t get_time_dependent_cost(uint64_t time, uint64_t from, uint64_t to) const;
 };
 
-std::ostream &operator<<(std::ostream &os, const InputData &data);
+std::ostream& operator<<(std::ostream& os, const InputData& data);
 
 struct Solution {
     /// последовательость индексов точек, составляющих найденный маршрут.
@@ -56,4 +57,12 @@ struct Solution {
     uint64_t total_value{};
 };
 
-std::ostream &operator<<(std::ostream &os, const Solution &solution);
+struct BenchmarkMetadata {
+    double ST;
+    int AON;
+    int max_iter;
+    int time_limit;
+    double total_execution_time_sec;
+};
+
+std::ostream& operator<<(std::ostream& os, const Solution& solution);

@@ -10,6 +10,14 @@ RoutePack CreateMockPack(std::vector<int> vertices) {
     pack.AddRoute(Route(std::move(vertices)));
     return pack;
 }
+
+RoutePack CreateMultiMockPack(std::vector<std::vector<int>> routes_data) {
+    RoutePack pack;
+    for (auto& data : routes_data) {
+        pack.AddRoute(Route(std::move(data)));
+    }
+    return pack;
+}
 }
 
 TEST(SwapMove, SwapsCorrectly) {
@@ -69,3 +77,56 @@ TEST(ReorderBlockMove, ReordersCorrectly) {
     std::vector<int> expected = {0, 3, 1, 2, 4};
     EXPECT_EQ(result.GetRoute(0).Vertices(), expected);
 }
+
+TEST(InterRelocateMove, MovesVertexBetweenRoutes) {
+    auto pack = CreateMultiMockPack({{0, 1, 2}, {0, 3, 4}});
+
+    InterRelocateMove move(0, 1, 1, 2);
+    RoutePack result = move.Apply(pack);
+
+    std::vector<int> expected_r0 = {0, 2};
+    std::vector<int> expected_r1 = {0, 3, 1, 4};
+
+    EXPECT_EQ(result.GetRoute(0).Vertices(), expected_r0);
+    EXPECT_EQ(result.GetRoute(1).Vertices(), expected_r1);
+}
+
+TEST(InterSwapMove, SwapsVerticesBetweenRoutes) {
+    auto pack = CreateMultiMockPack({{0, 1, 2}, {0, 3, 4}});
+
+    InterSwapMove move(0, 1, 1, 2);
+    RoutePack result = move.Apply(pack);
+
+    std::vector<int> expected_r0 = {0, 4, 2};
+    std::vector<int> expected_r1 = {0, 3, 1};
+
+    EXPECT_EQ(result.GetRoute(0).Vertices(), expected_r0);
+    EXPECT_EQ(result.GetRoute(1).Vertices(), expected_r1);
+}
+
+TEST(CrossExchangeMove, SwapsSegmentsBetweenRoutes) {
+    auto pack = CreateMultiMockPack({{0, 1, 2, 3, 4}, {0, 5, 6, 7}});
+
+    CrossExchangeMove move(0, 1, 1, 2, 2, 2);
+    RoutePack result = move.Apply(pack);
+
+    std::vector<int> expected_r0 = {0, 6, 7, 3, 4};
+    std::vector<int> expected_r1 = {0, 5, 1, 2};
+
+    EXPECT_EQ(result.GetRoute(0).Vertices(), expected_r0);
+    EXPECT_EQ(result.GetRoute(1).Vertices(), expected_r1);
+}
+
+TEST(TwoOptStarMove, SwapsSuffixesCorrectly) {
+    auto pack = CreateMultiMockPack({{0, 1, 2, 3}, {0, 4, 5, 6}});
+
+    TwoOptStarMove move(0, 1, 1, 1);
+    RoutePack result = move.Apply(pack);
+
+    std::vector<int> expected_r0 = {0, 1, 5, 6};
+    std::vector<int> expected_r1 = {0, 4, 2, 3};
+
+    EXPECT_EQ(result.GetRoute(0).Vertices(), expected_r0);
+    EXPECT_EQ(result.GetRoute(1).Vertices(), expected_r1);
+}
+

@@ -16,6 +16,14 @@ RoutePack CreateMockPack(std::vector<int> vertices) {
     pack.AddRoute(Route(std::move(vertices)));
     return pack;
 }
+
+RoutePack CreateMultiMockPack(std::vector<std::vector<int>> routes_data) {
+    RoutePack pack;
+    for (auto& data : routes_data) {
+        pack.AddRoute(Route(std::move(data)));
+    }
+    return pack;
+}
 }
 
 TEST(Neighborhoods, RelocateBoundsTest) {
@@ -84,4 +92,69 @@ TEST(Neighborhoods, TwoOptBoundsTest) {
     // len=3 -> 1 move:  reversing [1,6]
     EXPECT_EQ(interceptor.moves.size(), 10);
     EXPECT_EQ(interceptor.moves.front()->Type(), N4_2OPT);
+}
+
+TEST(Neighborhoods, InterRelocateBoundsTest) {
+    auto pack = CreateMultiMockPack({{0, 1}, {0, 2}});
+
+    class MockInterRelocate : public InterRelocateNeighborhood {
+    public:
+        using InterRelocateNeighborhood::VisitEachMove;
+    };
+
+    MoveInterceptor interceptor;
+    MockInterRelocate().VisitEachMove(pack, interceptor.evaluate);
+
+    // Expect 4 moves:
+    // R0->R1: 2 moves
+    // R1->R0: 2 moves
+    EXPECT_EQ(interceptor.moves.size(), 4);
+}
+
+TEST(Neighborhoods, InterSwapBoundsTest) {
+    auto pack = CreateMultiMockPack({{0, 1, 2}, {0, 3}});
+
+    class MockInterSwap : public InterSwapNeighborhood {
+    public:
+        using InterSwapNeighborhood::VisitEachMove;
+    };
+
+    MoveInterceptor interceptor;
+    MockInterSwap().VisitEachMove(pack, interceptor.evaluate);
+
+    // Expect 2 moves: swapping (R0:1, R1:3) / (R0:2, R1:3)
+    EXPECT_EQ(interceptor.moves.size(), 2);
+}
+
+TEST(Neighborhoods, TwoOptStarBoundsTest) {
+    auto pack = CreateMultiMockPack({{0, 1, 2, 3}, {0, 4, 5, 6}});
+
+    class MockTwoOptStar : public TwoOptStarNeighborhood {
+    public:
+        using TwoOptStarNeighborhood::VisitEachMove;
+    };
+
+    MoveInterceptor interceptor;
+    MockTwoOptStar().VisitEachMove(pack, interceptor.evaluate);
+
+    // Expect 4 moves:
+    // Swap pairs of edges from R0: [1,2] / [2,3] and R1: [4,5] / [5,6]
+    EXPECT_EQ(interceptor.moves.size(), 4);
+}
+
+TEST(Neighborhoods, CrossExchangeBoundsTest) {
+    auto pack = CreateMultiMockPack({{0, 1, 2, 3}, {0, 4, 5, 6}});
+
+    class MockCrossExchange : public CrossExchangeNeighborhood {
+    public:
+        using CrossExchangeNeighborhood::VisitEachMove;
+    };
+
+    MoveInterceptor interceptor;
+    MockCrossExchange().VisitEachMove(pack, interceptor.evaluate);
+
+    // Expect 36 moves:
+    // R0 -> 6 moves: [1], [2], [3], [1,2], [2,3], [1,2,3]
+    // R1 -> 6 moves
+    EXPECT_EQ(interceptor.moves.size(), 36);
 }

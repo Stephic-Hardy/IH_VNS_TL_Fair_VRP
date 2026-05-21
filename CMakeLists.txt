@@ -53,6 +53,7 @@ endif()
 set(SOURCES
         src/first_step.cpp
         src/insertion_heuristic.cpp
+        src/interroute_search.cpp
         src/move.cpp
         src/neighborhood.cpp
         src/route.cpp

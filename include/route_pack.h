@@ -18,11 +18,23 @@ public:
 
     void AddRoute(Route&& route);
 
+    double ComputeMaxDistance(const InputData& input) const;
+
+    double ComputeMinDistance(const InputData& input) const;
+
+    bool IsValid(const InputData& input) const;
+
     double ComputeDistance(const InputData& input) const;
 
     double ComputeCost(const InputData& input) const;
 
     double ComputeValue(const InputData& input) const;
+
+    double ComputeDistanceStandardDeviation(const InputData& input) const;
+
+    size_t GetMaxDistanceRouteIdx(const InputData& input) const;
+
+    size_t GetMinDistanceRouteIdx(const InputData& input) const;
 
     bool operator==(const RoutePack& route_pack) const;
 
