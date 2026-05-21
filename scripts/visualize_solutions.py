@@ -8,6 +8,7 @@ from folium import plugins
 from itertools import combinations
 import osmnx as ox
 from pyrosm import OSM
+from pathlib import Path
 
 def get_direction(lat1, lon1, lat2, lon2):
     lat1, lon1, lat2, lon2 = map(math.radians, [lat1, lon1, lat2, lon2])
@@ -17,24 +18,25 @@ def get_direction(lat1, lon1, lat2, lon2):
     brng = math.degrees(math.atan2(y, x))
     return (brng + 360) % 360
 
-def draw_map(idx, show_labels=False, show_connections=False, target_routes=None, road_graph=None):
-    prob_coords_dir = "../SPB_problems/Generates_SPB_problems/coords"
-    prob_main_dir = "../SPB_problems/Generates_SPB_problems/problems"
-    sol_dir = "../SPB_problems/Generated_SPB_solutions"
-    map_dir = "../SPB_problems/maps_solution_SPB"
+def draw_map(idx, dataset_dir, show_labels=False, show_connections=False, target_routes=None, road_graph=None):
+    prob_coords_dir = f"{dataset_dir}/coords"
+    prob_prob_dir = f"{dataset_dir}/problems"
+    sol_dir = f"{dataset_dir}/solutions"
+    map_dir = f"{dataset_dir}/maps"
     os.makedirs(map_dir, exist_ok=True)
 
-    sol_file = os.path.join(sol_dir, f"generated_solution_{idx}.json")
-    coords_file = os.path.join(prob_coords_dir, f"Generated_problems_{idx}_coords.json")
-    prob_file = os.path.join(prob_main_dir, f"Generated_problems_{idx}.json")
-    map_file = os.path.join(map_dir, f"map_results_{idx}.html")
+    sol_file = os.path.join(sol_dir, f"{idx}.json")
+    coords_file = os.path.join(prob_coords_dir, f"{idx}.json")
+    prob_file = os.path.join(prob_prob_dir, f"{idx}.json")
+    map_file = os.path.join(map_dir, f"{idx}.html")
 
     if not os.path.exists(sol_file) or not os.path.exists(coords_file):
         print(f"Missing data for task {idx}. Skipping")
         return
 
     with open(sol_file, 'r') as f:
-        solutions = json.load(f)
+        data = json.load(f)
+        solutions = data["solutions"] if isinstance(data, dict) else data
     with open(coords_file, 'r') as f:
         coords_list = json.load(f)
 
@@ -136,16 +138,20 @@ def main():
     parser.add_argument("-l", "--labels", action="store_true", help="Show Node IDs and edge costs")
     parser.add_argument("-c", "--connections", action="store_true", help="Show all possible internal connections")
     parser.add_argument("-r", "--routes", type=int, nargs='+', help="Filter specific agent indices")
+    parser.add_argument("-d", "--dataset", type=str, default="SPB", help="Dataset name (will be searched inside the ../data/ directory)")
+    parser.add_argument("--dir", type=str, default="../data/", help="Datasets directory")
+    parser.add_argument("-o", "--osm", type=str, default="../lesnaya_area.pbf", help="Open Street Map data")
 
     parser.add_argument("--no-snapped", action="store_true", help="Disable snapping points to actual road nodes (show raw coordinates)")
 
     args = parser.parse_args()
 
+    dataset_dir = Path(args.dir) / args.dataset
     road_graph = None
     if not args.no_snapped:
         print("Loading OSM Map for road-node snapping (might take a few seconds)...")
         try:
-            osm = OSM("../lesnaya_area.pbf")
+            osm = OSM(args.osm)
             nodes_data, edges_data = osm.get_network(network_type="driving", nodes=True)
             road_graph = osm.to_graph(nodes_data, edges_data, graph_type="networkx")
             print(f"Loaded {len(road_graph.nodes)} nodes")
@@ -153,8 +159,8 @@ def main():
             print(f"Error loading map: {e}. Falling back to raw coordinates")
 
     if args.all:
-        files = glob.glob("../SPB_problems/Generated_SPB_solutions/generated_solution_*.json")
-        ids = sorted([int(os.path.basename(f).replace("generated_solution_", "").replace(".json", "")) for f in files])
+        files = glob.glob(f"{dataset_dir}/solutions/*.json")
+        ids = sorted([int(os.path.basename(f).replace(".json", "")) for f in files])
     elif args.ids:
         ids = args.ids
     else:
@@ -162,7 +168,7 @@ def main():
         return
 
     for idx in ids:
-        draw_map(idx, show_labels=args.labels, show_connections=args.connections, target_routes=args.routes, road_graph=road_graph)
+        draw_map(idx, dataset_dir=dataset_dir, show_labels=args.labels, show_connections=args.connections, target_routes=args.routes, road_graph=road_graph)
 
 if __name__ == "__main__":
     main()
