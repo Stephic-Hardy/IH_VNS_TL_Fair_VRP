@@ -104,7 +104,7 @@ int main(int argc, char* argv[]) {
 
         // Remove visited vertices
         for (int v : subset_to_visit) {
-            if (!excluded_points[v]) {
+            if (!excluded_points[v] && v != 0) {
                 excluded_points[v] = true;
                 remaining_points--;
             }
