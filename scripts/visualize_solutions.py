@@ -8,6 +8,7 @@ from folium import plugins
 from itertools import combinations
 import osmnx as ox
 from pyrosm import OSM
+from pathlib import Path
 
 def get_direction(lat1, lon1, lat2, lon2):
     lat1, lon1, lat2, lon2 = map(math.radians, [lat1, lon1, lat2, lon2])
@@ -137,13 +138,15 @@ def main():
     parser.add_argument("-l", "--labels", action="store_true", help="Show Node IDs and edge costs")
     parser.add_argument("-c", "--connections", action="store_true", help="Show all possible internal connections")
     parser.add_argument("-r", "--routes", type=int, nargs='+', help="Filter specific agent indices")
-    parser.add_argument("-d", "--dir", type=str, default="../data/SPB", help="Dataset directory")
+    parser.add_argument("-d", "--dataset", type=str, default="SPB", help="Dataset name (will be searched inside the ../data/ directory)")
+    parser.add_argument("--dir", type=str, default="../data/", help="Datasets directory")
     parser.add_argument("-o", "--osm", type=str, default="../lesnaya_area.pbf", help="Open Street Map data")
 
     parser.add_argument("--no-snapped", action="store_true", help="Disable snapping points to actual road nodes (show raw coordinates)")
 
     args = parser.parse_args()
 
+    dataset_dir = Path(args.dir) / args.dataset
     road_graph = None
     if not args.no_snapped:
         print("Loading OSM Map for road-node snapping (might take a few seconds)...")
@@ -156,7 +159,7 @@ def main():
             print(f"Error loading map: {e}. Falling back to raw coordinates")
 
     if args.all:
-        files = glob.glob(f"{args.dir}/solutions/*.json")
+        files = glob.glob(f"{dataset_dir}/solutions/*.json")
         ids = sorted([int(os.path.basename(f).replace(".json", "")) for f in files])
     elif args.ids:
         ids = args.ids
@@ -165,7 +168,7 @@ def main():
         return
 
     for idx in ids:
-        draw_map(idx, dataset_dir=args.dir, show_labels=args.labels, show_connections=args.connections, target_routes=args.routes, road_graph=road_graph)
+        draw_map(idx, dataset_dir=dataset_dir, show_labels=args.labels, show_connections=args.connections, target_routes=args.routes, road_graph=road_graph)
 
 if __name__ == "__main__":
     main()

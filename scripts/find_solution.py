@@ -2,6 +2,7 @@ import os
 import argparse
 import subprocess
 import glob
+from pathlib import Path
 
 def run_solver(idx, dataset_dir):
     prob_dir = f"{dataset_dir}/problems"
@@ -29,11 +30,13 @@ def main():
     parser = argparse.ArgumentParser(description="Run the routing algorithm")
     parser.add_argument("-a", "--all", action="store_true", help="Run for all test cases")
     parser.add_argument("-i", "--ids", type=int, nargs='+', help="Specify IDs of problems to run (e.g. -i 1 3 5)")
-    parser.add_argument("-d", "--dir", type=str, default="../data/SPB", help="Dataset directory")
+    parser.add_argument("-d", "--dataset", type=str, default="SPB", help="Dataset name (will be searched inside the ../data/ directory)")
+    parser.add_argument("--dir", type=str, default="../data/", help="Datasets directory")
     args = parser.parse_args()
 
+    dataset_dir = Path(args.dir) / args.dataset
     if args.all:
-        files = glob.glob(f"{args.dir}/problems/*.json")
+        files = glob.glob(f"{dataset_dir}/problems/*.json")
         ids = sorted([int(os.path.basename(f).replace("problem_", "").replace(".json", "")) for f in files])
     elif args.ids:
         ids = args.ids
@@ -42,7 +45,7 @@ def main():
         return
 
     for idx in ids:
-        run_solver(idx, args.dir)
+        run_solver(idx, dataset_dir)
 
 if __name__ == "__main__":
     main()

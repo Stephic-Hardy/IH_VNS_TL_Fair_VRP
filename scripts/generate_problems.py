@@ -4,6 +4,7 @@ import json
 import numpy as np
 import networkx as nx
 import osmnx as ox
+from pathlib import Path
 from shapely.geometry import Point
 from pyrosm import OSM
 from functools import partial
@@ -18,12 +19,14 @@ def get_next_index(directory, prefix=""):
 def main():
     parser = argparse.ArgumentParser(description="Generator of problem datasets from real OSM data")
     parser.add_argument("-n", "--count", type=int, default=1, help="Number of problems to generate")
-    parser.add_argument("-d", "--dir", type=str, default="../data/SPB", help="Dataset directory")
-    parser.add_argument("-o", "--osm", type=str, default="../lesnaya_area.pbf", help="Open Street Map data")
+    parser.add_argument("-d", "--dataset", type=str, default="SPB", help="Dataset name (will be searched inside the ../data/ directory)")
+    parser.add_argument("--dir", type=str, default="../data/", help="Datasets directory")
+    parser.add_argument("-o", "--osm", type=str, default="../data/SPB/lesnaya_area.pbf", help="Open Street Map data")
     args = parser.parse_args()
 
-    out_dir_problems = f"{args.dir}/problems"
-    out_dir_coords = f"{args.dir}/coords"
+    dataset_dir = Path(args.dir) / args.dataset
+    out_dir_problems = f"{dataset_dir}/problems"
+    out_dir_coords = f"{dataset_dir}/coords"
 
     os.makedirs(out_dir_problems, exist_ok=True)
     os.makedirs(out_dir_coords, exist_ok=True)
