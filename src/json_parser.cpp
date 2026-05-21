@@ -38,8 +38,8 @@ namespace JsonParser {
 
     using json = nlohmann::json;
 
-    bool ParseInputDataFromJson(const std::string &jsonPath, InputData &arg) {
-        std::ifstream jsonFile(jsonPath);
+    bool ParseInputDataFromJson(const std::string &json_path, InputData &arg) {
+        std::ifstream jsonFile(json_path);
         if (!jsonFile) {
             std::cerr << "Can`t open input file with problem" << std::endl;
             return false;
@@ -52,8 +52,8 @@ namespace JsonParser {
         return true;
     }
 
-    bool ParseSolutionFromJson(const std::string &jsonPath, Solution &solution) {
-        std::ifstream jsonFile(jsonPath);
+    bool ParseSolutionFromJson(const std::string &json_path, Solution &solution) {
+        std::ifstream jsonFile(json_path);
         if (!jsonFile) {
             std::cerr << "Can`t open input file with solution" << std::endl;
             return false;
@@ -66,10 +66,10 @@ namespace JsonParser {
         return true;
     }
 
-    bool WriteSolutionToJsonFile(const std::string &jsonPath, Solution &&solution) {
+    bool WriteSolutionToJsonFile(const std::string &json_path, Solution &&solution) {
         nlohmann::json j = std::move(solution);
 
-        std::ofstream file(jsonPath);
+        std::ofstream file(json_path);
         if (!file) {
             std::cerr << "Can`t open output file to write solution" << std::endl;
             return false;
@@ -79,7 +79,7 @@ namespace JsonParser {
         return true;
     };
 
-    bool WriteMultiSolutionToJsonFile(const std::string &jsonPath, const std::vector<Solution> &solutions) {
+    bool WriteMultiSolutionToJsonFile(const std::string &json_path, const std::vector<Solution> &solutions) {
         // Создаем пустой JSON массив
         nlohmann::json j_array = nlohmann::json::array();
 
@@ -94,14 +94,46 @@ namespace JsonParser {
             j_array.push_back(j_obj);
         }
 
-        std::ofstream file(jsonPath);
+        std::ofstream file(json_path);
         if (!file.is_open()) {
-            std::cerr << "Could not open file for writing: " << jsonPath << std::endl;
+            std::cerr << "Could not open file for writing: " << json_path << std::endl;
             return false;
         }
 
         // Записываем массив напрямую, как в твоем примере
         file << j_array.dump(4);
+        return true;
+    }
+
+    bool WriteBenchmarkToJsonFile(const std::string &json_path, const std::vector<Solution> &solutions, const BenchmarkMetadata& meta) {
+        nlohmann::json j_root;
+
+        nlohmann::json j_meta;
+        j_meta["ST"] = meta.ST;
+        j_meta["AON"] = meta.AON;
+        j_meta["max_iter"] = meta.max_iter;
+        j_meta["time_limit"] = meta.time_limit;
+        j_meta["execution_time_sec"] = meta.total_execution_time_sec;
+        j_root["metadata"] = j_meta;
+
+        nlohmann::json j_array = nlohmann::json::array();
+        for (const auto& s : solutions) {
+            nlohmann::json j_obj;
+            j_obj["route"] = s.route;
+            j_obj["solution_size"] = s.solution_size;
+            j_obj["total_time"] = s.total_time;
+            j_obj["total_distance"] = s.total_distance;
+            j_obj["total_value"] = s.total_value;
+            j_array.push_back(j_obj);
+        }
+        j_root["solutions"] = j_array;
+
+        std::ofstream file(json_path);
+        if (!file.is_open()) {
+            return false;
+        }
+
+        file << j_root.dump(4);
         return true;
     }
 }

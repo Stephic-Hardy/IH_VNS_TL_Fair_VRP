@@ -1,9 +1,9 @@
 #pragma once
 
-#include "tour.h"
+#include "route.h"
 #include "problem_arguments.hpp"
 
 class InsertionHeuristic {
 public:
-    static Tour BuildInitialTour(const std::vector<int> &global_subset, const InputData& input_data);
+    static Route BuildInitialTour(const std::vector<int> &global_subset, const InputData& input_data);
 };

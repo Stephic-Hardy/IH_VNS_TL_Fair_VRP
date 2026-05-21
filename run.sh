@@ -95,4 +95,4 @@ echo "OUTPUT_JSON: $OUTPUT_JSON"
 echo "FAIRNESS: $FAIRNESS"
 echo "===================="
 
-../tdtsp_solver "$ST" "$AON" "$MAX_ITER" "$TIME_LIMIT" "$INPUT_JSON" "$OUTPUT_JSON" "$FAIRNESS"
+../tdtsp_solver "$ST" "$AON" "$MAX_ITER" "$TIME_LIMIT" "$INPUT_JSON" "$OUTPUT_JSON" "$FAIRNESS" --benchmark
