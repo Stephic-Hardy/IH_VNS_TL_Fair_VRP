@@ -4,7 +4,7 @@ import subprocess
 import glob
 from pathlib import Path
 
-def run_solver(idx, dataset_dir, fairness):
+def run_solver(idx, dataset_dir, algorithm, fairness):
     prob_dir = f"{dataset_dir}/problems"
     sol_dir = f"{dataset_dir}/solutions"
     os.makedirs(sol_dir, exist_ok=True)
@@ -18,7 +18,7 @@ def run_solver(idx, dataset_dir, fairness):
 
     print(f"Running algorithm for testcase {idx}...")
   
-    cmd = ["../run.sh", "-s", "0.025", "-a", "5", "-i", "300", "-f", input_file, "-o", output_file, "-t", "15", "-r", str(fairness)]
+    cmd = ["../tdtsp_solver", "--st", "0.025", "--aon", "5", "--max-iter", "300", "--time-limit", "8", "--fairness", str(fairness), "--algorithm", algorithm, input_file, output_file]
     
     try:
         subprocess.run(cmd, check=True)
@@ -32,6 +32,7 @@ def main():
     parser.add_argument("-i", "--ids", type=int, nargs='+', help="Specify IDs of problems to run (e.g. -i 1 3 5)")
     parser.add_argument("-d", "--dataset", type=str, default="SPB", help="Dataset name (will be searched inside the ../data/ directory)")
     parser.add_argument("--dir", type=str, default="../data/", help="Datasets directory")
+    parser.add_argument("--algorithm", type=str, help="Algorithm to use (rebalancing/annealing)")
     parser.add_argument("--fairness", type=float, default=0.5, help="Fairness importance (default: 0.5)")
     args = parser.parse_args()
 
@@ -46,7 +47,7 @@ def main():
         return
 
     for idx in ids:
-        run_solver(idx, dataset_dir, fairness=args.fairness)
+        run_solver(idx, dataset_dir, algorithm=args.algorithm, fairness=args.fairness)
 
 if __name__ == "__main__":
     main()
