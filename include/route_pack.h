@@ -16,6 +16,8 @@ public:
 
     Route& MutateRoute(size_t idx);
 
+    void ReplaceRoute(size_t idx, std::shared_ptr<Route> route);
+
     void AddRoute(Route&& route);
 
     double ComputeMaxDistance(const InputData& input) const;

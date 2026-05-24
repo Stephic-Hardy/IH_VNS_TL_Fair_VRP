@@ -20,6 +20,10 @@ Route& RoutePack::MutateRoute(size_t idx) {
     return *routes_[idx];
 }
 
+void RoutePack::ReplaceRoute(size_t idx, std::shared_ptr<Route> route) {
+    routes_[idx] = route;
+}
+
 void RoutePack::AddRoute(Route&& route) {
     routes_.push_back(std::make_shared<Route>(std::move(route)));
 }

@@ -18,6 +18,21 @@ endif()
 
 # Find required packages
 
+# argparse
+find_package(argparse 3.2 QUIET)
+if(argparse_FOUND)
+    message(STATUS "Using system argparse")
+else()
+    include(FetchContent)
+    FetchContent_Declare(
+            argparse
+            GIT_REPOSITORY https://github.com/p-ranav/argparse.git
+            GIT_TAG v3.2
+    )
+    FetchContent_MakeAvailable(argparse)
+    message(STATUS "Using downloaded argparse")
+endif()
+
 # nlohmann_json
 find_package(nlohmann_json 3.2.0 QUIET)
 if(nlohmann_json_FOUND)
@@ -72,7 +87,10 @@ add_executable(tdtsp_solver
 target_include_directories(tdtsp_solver PRIVATE
     ${CMAKE_SOURCE_DIR}/include
 )
-target_link_libraries(tdtsp_solver PRIVATE nlohmann_json::nlohmann_json)
+target_link_libraries(tdtsp_solver PRIVATE
+    argparse::argparse
+    nlohmann_json::nlohmann_json
+)
 
 # Library for testing
 add_library(tdtsp_lib ${SOURCES})
