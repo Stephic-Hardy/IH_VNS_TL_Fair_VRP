@@ -6,8 +6,6 @@
 
 class RoutePack {
 public:
-    RoutePack& operator=(const RoutePack&) = default;
-
     size_t Size() const;
 
     const Route& GetRoute(size_t idx) const;

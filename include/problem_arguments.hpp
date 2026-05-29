@@ -37,14 +37,14 @@ struct InputData {
     std::vector<int64_t> point_service_times;
 
     /// 30 минут в секундах для TD цены перехода
-    static constexpr uint64_t time_duration = 30 * 60;
+    static constexpr uint64_t kTimeDuration = 30 * 60;
 
-    int64_t get_time_dependent_cost(uint64_t time, uint64_t from, uint64_t to) const;
+    int64_t GetTimeDependentCost(uint64_t time, uint64_t from, uint64_t to) const;
 };
 
 std::ostream& operator<<(std::ostream& os, const InputData& data);
 
-struct Solution {
+struct AgentSolution {
     /// последовательость индексов точек, составляющих найденный маршрут.
     std::vector<uint64_t> route;
     /// количество точек в решении.
@@ -62,7 +62,12 @@ struct BenchmarkMetadata {
     int AON;
     int max_iter;
     int time_limit;
-    double total_execution_time_sec;
+    double execution_time;
 };
 
-std::ostream& operator<<(std::ostream& os, const Solution& solution);
+struct Solution {
+    std::vector<AgentSolution> agents;
+    BenchmarkMetadata meta;
+};
+
+std::ostream& operator<<(std::ostream& os, const AgentSolution& solution);

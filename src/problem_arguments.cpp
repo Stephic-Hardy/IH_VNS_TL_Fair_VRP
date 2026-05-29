@@ -40,13 +40,13 @@ bool ParseProgramArguments(int argc, char *argv[], ProgramArguments &args) {
     return true;
 }
 
-int64_t InputData::get_time_dependent_cost(uint64_t time, uint64_t from, uint64_t to) const {
-    if (time >= time_duration * (time_matrix.size() - 1)) {
+int64_t InputData::GetTimeDependentCost(uint64_t time, uint64_t from, uint64_t to) const {
+    if (time >= kTimeDuration * (time_matrix.size() - 1)) {
         return time_matrix[time_matrix.size() - 1][from][to];
     }
 
-    const auto time_matrix_idx = time / time_duration;
-    const double alpha = static_cast<double>(time - time_duration * time_matrix_idx) / time_duration;
+    const auto time_matrix_idx = time / kTimeDuration;
+    const double alpha = static_cast<double>(time - kTimeDuration * time_matrix_idx) / kTimeDuration;
 
     return static_cast<int64_t>(alpha * time_matrix[time_matrix_idx][from][to] +
                                  (1 - alpha) * time_matrix[time_matrix_idx + 1][from][to]);
@@ -93,7 +93,7 @@ std::ostream &operator<<(std::ostream &os, const InputData &data) {
     return os;
 }
 
-std::ostream &operator<<(std::ostream &os, const Solution &solution) {
+std::ostream &operator<<(std::ostream &os, const AgentSolution &solution) {
     os << "solution_size: " << solution.solution_size << "\n";
 
     os << "route: ";

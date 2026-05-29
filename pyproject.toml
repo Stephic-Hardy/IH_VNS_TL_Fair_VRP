@@ -1,0 +1,7 @@
+[build-system]
+requires = ["scikit_build_core", "pybind11"]
+build-backend = "scikit_build_core.build"
+
+[project]
+name = "tdtsp"
+version = "0.1.0"

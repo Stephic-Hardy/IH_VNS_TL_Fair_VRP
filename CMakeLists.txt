@@ -1,9 +1,10 @@
 cmake_minimum_required(VERSION 3.16)
-project(TDTSP_Solver)
+project(TDTSP_Solver VERSION 0.1)
 
 # Set C++ standard
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
+set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
 # Executable will be created in the root of the repo
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_SOURCE_DIR})
@@ -71,11 +72,15 @@ set(SOURCES
         src/interroute_search.cpp
         src/move.cpp
         src/neighborhood.cpp
+        src/optimizer.cpp
+        src/initializer.cpp
         src/route.cpp
         src/route_pack.cpp
         src/vns_tabu.cpp
         src/problem_arguments.cpp
         src/post_processing.cpp
+        src/solver.cpp
+        src/utils.cpp
 )
 
 # Solver executable
@@ -93,20 +98,33 @@ target_link_libraries(tdtsp_solver PRIVATE
 )
 
 # Library for testing
-add_library(tdtsp_lib ${SOURCES})
+add_library(tdtsp_lib SHARED ${SOURCES})
+set_property(TARGET tdtsp_lib PROPERTY POSITION_INDEPENDENT_CODE TRUE) 
 target_include_directories(tdtsp_lib PRIVATE
         ${CMAKE_SOURCE_DIR}/include
 )
 
 enable_testing()
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR})
-add_executable(tests
-    test/move.cpp
-    test/neighborhood.cpp
+add_executable(tdtsp_tests
+    tests/cpp/move.cpp
+    tests/cpp/neighborhood.cpp
 )
-target_include_directories(tests PRIVATE
+target_include_directories(tdtsp_tests PRIVATE
         ${CMAKE_SOURCE_DIR}/include
 )
-target_link_libraries(tests PRIVATE tdtsp_lib GTest::gtest_main)
+target_link_libraries(tdtsp_tests PRIVATE tdtsp_lib GTest::gtest_main)
 include(GoogleTest)
-gtest_discover_tests(tests)
+gtest_discover_tests(tdtsp_tests)
+
+# Pybind stuff
+# Partially yoinked from https://bastian.rieck.me/blog/2018/cmake_cpp_pybind11_hard_mode/
+set(PYBIND11_FINDPYTHON ON)
+find_package(pybind11 REQUIRED)
+
+pybind11_add_module(_tdtsp MODULE bindings/bindings.cpp ${SOURCES})
+target_include_directories(_tdtsp PRIVATE
+        ${CMAKE_SOURCE_DIR}/include
+)
+
+install(TARGETS _tdtsp DESTINATION tdtsp)

@@ -37,7 +37,7 @@ double Route::ComputeValue(const InputData& input) const {
             total_value += input.point_scores[to - 1];
         }
 
-        int64_t travel_time = input.get_time_dependent_cost(
+        int64_t travel_time = input.GetTimeDependentCost(
             static_cast<uint64_t>(current_time),
             from,
             to
@@ -53,7 +53,7 @@ double Route::ComputeValue(const InputData& input) const {
 
     // Учитываем возврат в депо
     int last = vertices_.back();
-    int64_t return_time = input.get_time_dependent_cost(
+    int64_t return_time = input.GetTimeDependentCost(
         static_cast<uint64_t>(current_time),
         last,
         0
@@ -77,7 +77,7 @@ double Route::ComputeCost(const InputData& input) const {
         int from = vertices_[i - 1];
         int to = vertices_[i];
 
-        int64_t travel_time = input.get_time_dependent_cost(
+        int64_t travel_time = input.GetTimeDependentCost(
             static_cast<uint64_t>(current_time),
             from, // используем старые индексы
             to
@@ -93,7 +93,7 @@ double Route::ComputeCost(const InputData& input) const {
 
     // Возврат в депо
     int last = vertices_.back();
-    int64_t return_time = input.get_time_dependent_cost(
+    int64_t return_time = input.GetTimeDependentCost(
         static_cast<uint64_t>(current_time),
         last,
         0 // депо имеет индекс 0
