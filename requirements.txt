@@ -7,5 +7,5 @@ pyrosm
 Requests
 Shapely
 pytest
-pybind
-
+pybind11
+pybind11-stubgen

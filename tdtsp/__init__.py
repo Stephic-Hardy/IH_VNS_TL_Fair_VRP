@@ -1,1 +1,1 @@
-from ._tdtsp import *
+from .tdtsp_python import *

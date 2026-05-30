@@ -110,8 +110,8 @@ namespace JsonParser {
         nlohmann::json j_root;
 
         nlohmann::json j_meta;
-        j_meta["ST"] = meta.ST;
-        j_meta["AON"] = meta.AON;
+        j_meta["ST"] = meta.st;
+        j_meta["AON"] = meta.aon;
         j_meta["max_iter"] = meta.max_iter;
         j_meta["time_limit"] = meta.time_limit;
         j_meta["execution_time_sec"] = meta.execution_time;

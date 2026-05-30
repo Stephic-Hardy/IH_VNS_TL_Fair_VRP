@@ -1,5 +1,7 @@
 #include "initializer.h"
+#include <iostream>
 #include "first_step.hpp"
+#include "problem_arguments.hpp"
 
 RoutePack InsertionHeuristicInitializer::BuildInitialRoutes(const InputData &input_data) {
     std::vector<bool> excluded_points(input_data.points_count, false);
@@ -28,13 +30,18 @@ RoutePack InsertionHeuristicInitializer::BuildInitialRoutes(const InputData &inp
         routes.AddRoute(Route(subset_to_visit));
 
         // Remove visited vertices
+        bool added_any = false;
         for (int v : subset_to_visit) {
             if (!excluded_points[v] && v != 0) {
                 excluded_points[v] = true;
                 remaining_points--;
+                added_any = true;
             }
         }
+        if (!added_any) {
+            break;
+        }
     }
-    
+
     return routes;
 }

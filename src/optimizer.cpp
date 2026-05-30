@@ -9,6 +9,13 @@ BaselineOptimizer::BaselineOptimizer(double st, int aon, int max_iter, int time_
     : st_(st), aon_(aon), max_iter_(max_iter), time_limit_(time_limit) {
 }
 
+void BaselineOptimizer::EnrichMeta(BenchmarkMetadata& meta) {
+    meta.st = st_;
+    meta.aon = aon_;
+    meta.max_iter = max_iter_;
+    meta.time_limit = time_limit_;
+}
+
 RoutePack BaselineOptimizer::Optimize(RoutePack &routes, const InputData &input_data) {
     RoutePack processed_routes = routes;
     for (size_t route_idx = 0; route_idx < routes.Size(); ++route_idx) {
@@ -24,6 +31,14 @@ RoutePack BaselineOptimizer::Optimize(RoutePack &routes, const InputData &input_
 AnnealingOptimizer::AnnealingOptimizer(double st, int aon, int max_iter, int time_limit,
                                        double alpha)
     : st_(st), aon_(aon), max_iter_(max_iter), time_limit_(time_limit), alpha_(alpha) {
+}
+
+void AnnealingOptimizer::EnrichMeta(BenchmarkMetadata& meta) {
+    meta.st = st_;
+    meta.aon = aon_;
+    meta.max_iter = max_iter_;
+    meta.time_limit = time_limit_;
+    meta.alpha = alpha_;
 }
 
 RoutePack AnnealingOptimizer::Optimize(RoutePack &routes, const InputData &input_data) {
@@ -43,6 +58,14 @@ RoutePack AnnealingOptimizer::Optimize(RoutePack &routes, const InputData &input
 RebalancingOptimizer::RebalancingOptimizer(double st, int aon, int max_iter, int time_limit,
                                            double fairness)
     : st_(st), aon_(aon), max_iter_(max_iter), time_limit_(time_limit), fairness_(fairness) {
+}
+
+void RebalancingOptimizer::EnrichMeta(BenchmarkMetadata& meta) {
+    meta.st = st_;
+    meta.aon = aon_;
+    meta.max_iter = max_iter_;
+    meta.time_limit = time_limit_;
+    meta.fairness = fairness_;
 }
 
 RoutePack RebalancingOptimizer::Optimize(RoutePack &routes, const InputData &input_data) {

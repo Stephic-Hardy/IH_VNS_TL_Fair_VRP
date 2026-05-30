@@ -300,9 +300,13 @@ RoutePack VNSTabu::VnsTabuAdvanced(const InputData& input_data,
             tabu_list_moves.clear();
             tabu_list_2opt.clear();
 
-            std::random_device rd;
-            std::mt19937 gen(rd());
-            std::uniform_int_distribution<size_t> dist(0, LT_VNS.size() - 1);
+            if (!LT_VNS.empty()) {
+                std::random_device rd;
+                std::mt19937 gen(rd());
+                std::uniform_int_distribution<size_t> dist(0, LT_VNS.size() - 1);
+                current = LT_VNS[dist(gen)];
+            }
+            
             LT.clear();
             current.MutateRoute(route) = InsertionHeuristic::BuildInitialTour(
                 agent_subset, input_data);

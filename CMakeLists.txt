@@ -118,13 +118,12 @@ include(GoogleTest)
 gtest_discover_tests(tdtsp_tests)
 
 # Pybind stuff
-# Partially yoinked from https://bastian.rieck.me/blog/2018/cmake_cpp_pybind11_hard_mode/
 set(PYBIND11_FINDPYTHON ON)
 find_package(pybind11 REQUIRED)
 
-pybind11_add_module(_tdtsp MODULE bindings/bindings.cpp ${SOURCES})
-target_include_directories(_tdtsp PRIVATE
+pybind11_add_module(tdtsp_python MODULE bindings/bindings.cpp ${SOURCES})
+target_include_directories(tdtsp_python PRIVATE
         ${CMAKE_SOURCE_DIR}/include
 )
 
-install(TARGETS _tdtsp DESTINATION tdtsp)
+install(TARGETS tdtsp_python DESTINATION tdtsp)

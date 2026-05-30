@@ -78,3 +78,11 @@
 - Решения: `SPB_problems/Generated_SPB_solutions/solution_<ID>`
 - Карты: `SPB_problems/maps_solutions_SPB/maps_<ID>`
 - Графики: `SPB_problems/Generated_SPB_solutions/solution_<ID>/Graphics/`
+
+## Сборка Python библиотеки 
+Биндинги интерфейса алгоритмов к Python реализованы с помощью pybind11 и находятся в директории [bindings](bindings).
+
+Для сборки библиотеки есть отдельный таргет cmake `tdtsp_python`.
+Установить собранную библиотеку можно находясь в корне репозитория командой `pip install -e .`
+
+Чтобы статические анализаторы типа pyright правильно находили интерфейсы библиотеки, необходимо запустить команду `python -m pybind11_stubgen tdtsp`, генерирующую .pyi файл с заглушками для API солвера. Также 

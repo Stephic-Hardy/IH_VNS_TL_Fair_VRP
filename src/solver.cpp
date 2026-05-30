@@ -39,6 +39,7 @@ Solution Solver::Solve(const InputData& input_data) {
     }
 
     BenchmarkMetadata meta{};
+    optimizer_->EnrichMeta(meta);
     meta.execution_time = exec_time;
 
     return Solution{all_agent_solutions, meta};

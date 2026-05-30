@@ -58,11 +58,17 @@ struct AgentSolution {
 };
 
 struct BenchmarkMetadata {
-    double ST;
-    int AON;
+    double st;
+    int aon;
     int max_iter;
     int time_limit;
     double execution_time;
+
+    // Annealing sepcific
+    double alpha = 0.5;
+    
+    // Rebalancing sepcific
+    double fairness = 0.5;
 };
 
 struct Solution {

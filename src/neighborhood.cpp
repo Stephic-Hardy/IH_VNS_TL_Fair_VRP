@@ -2,6 +2,7 @@
 
 #include <algorithm>
 #include <functional>
+#include <ostream>
 
 namespace {
 constexpr double kEps = 1e-9;
@@ -118,6 +119,9 @@ void
 TwoOptNeighborhood::VisitEachMove(const RoutePack& sol, size_t route,
                                   std::function<void(const Move&)> evaluator) const {
     size_t n = sol.GetRoute(route).Length();
+    if (n < 4) {
+        return;
+    }
     for (size_t i = 1; i < n - 2; ++i) {
         for (size_t j = i + 2; j < n; ++j) {
             TwoOptMove move(route, i, j);
@@ -133,6 +137,9 @@ void
 BlockMoveForwardNeighborhood::VisitEachMove(const RoutePack& sol, size_t route,
                                             std::function<void(const Move&)> evaluator) const {
     size_t n = sol.GetRoute(route).Length();
+    if (n <= k_) {
+        return;
+    }
     for (size_t i = 2; i < n - k_; ++i) {
         BlockRelocateMove move(route, i, k_, i + 1);
         evaluator(move);
