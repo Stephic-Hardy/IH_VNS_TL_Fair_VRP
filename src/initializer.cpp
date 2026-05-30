@@ -1,7 +1,5 @@
 #include "initializer.h"
-#include <iostream>
 #include "first_step.hpp"
-#include "problem_arguments.hpp"
 
 RoutePack InsertionHeuristicInitializer::BuildInitialRoutes(const InputData &input_data) {
     std::vector<bool> excluded_points(input_data.points_count, false);

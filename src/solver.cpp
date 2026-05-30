@@ -4,6 +4,7 @@
 #include "initializer.h"
 #include "optimizer.h"
 
+#include <cassert>
 #include <iostream>
 #include <chrono>
 #include <memory>
@@ -28,9 +29,10 @@ Solution Solver::Solve(const InputData& input_data) {
     for (const auto& tour : routes.Routes()) {
         AgentSolution sol;
         sol.route = std::vector<uint64_t>(tour->Vertices().begin(), tour->Vertices().end());
-        if (sol.route.back() != 0) {
-            sol.route.push_back(0);
-        }
+        
+        assert(sol.route.back() != 0);
+        sol.route.push_back(0);
+        
         sol.solution_size = sol.route.size();
         sol.total_time = tour->ComputeCost(input_data);
         sol.total_distance = tour->ComputeDistance(input_data);
