@@ -1,5 +1,4 @@
 #include <gtest/gtest.h>
-#include <numeric>
 
 #include "move.h"
 #include "route_pack.h"

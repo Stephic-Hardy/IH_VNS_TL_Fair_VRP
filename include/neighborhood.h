@@ -1,6 +1,5 @@
 #pragma once
 #include <functional>
-#include <vector>
 
 #include "route_pack.h"
 #include "move.h"

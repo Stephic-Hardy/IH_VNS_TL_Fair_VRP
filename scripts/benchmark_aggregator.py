@@ -71,7 +71,7 @@ def main():
     parser = argparse.ArgumentParser(description="Aggregate benchmarking results")
     parser.add_argument("-d", "--dataset", type=str, default="SPB", help="Dataset name (will be searched inside the ../data/ directory)")
     parser.add_argument("--dir", type=str, default="../data/", help="Datasets directory")
-    parser.add_argument("-o", "--output", type=str, default="benchmark_results.csv", help="File to write benchmark results into")
+    parser.add_argument("-o", "--output_file", type=str, default="benchmark_results.csv", help="File to write benchmark results into")
     args = parser.parse_args()
 
     dataset_dir = Path(args.dir) / args.dataset

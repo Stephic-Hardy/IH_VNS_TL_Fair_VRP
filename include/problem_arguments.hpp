@@ -10,8 +10,6 @@ struct ProgramArguments {
     uint64_t time;
 };
 
-bool ParseProgramArguments(int argc, char* argv[], ProgramArguments& args);
-
 struct InputData {
     /// количество точек в задаче, включая склад.
     uint64_t points_count{};
@@ -37,18 +35,16 @@ struct InputData {
     std::vector<int64_t> point_service_times;
 
     /// 30 минут в секундах для TD цены перехода
-    static constexpr uint64_t time_duration = 30 * 60;
+    static constexpr uint64_t kTimeDuration = 30 * 60;
 
-    int64_t get_time_dependent_cost(uint64_t time, uint64_t from, uint64_t to) const;
+    int64_t GetTimeDependentCost(uint64_t time, uint64_t from, uint64_t to) const;
 };
 
 std::ostream& operator<<(std::ostream& os, const InputData& data);
 
-struct Solution {
+struct AgentSolution {
     /// последовательость индексов точек, составляющих найденный маршрут.
     std::vector<uint64_t> route;
-    /// количество точек в решении.
-    uint64_t solution_size{};
     /// ETA на прохождение маршрута (по @time_matrix и @point_service_times).
     uint64_t total_time{};
     ///  суммарное расстояние в маршруте (по @distance_matrix).
@@ -58,11 +54,22 @@ struct Solution {
 };
 
 struct BenchmarkMetadata {
-    double ST;
-    int AON;
+    double st;
+    int aon;
     int max_iter;
-    int time_limit;
-    double total_execution_time_sec;
+    double time_limit;
+    double execution_time;
+
+    // Annealing sepcific
+    double alpha = 0.5;
+    
+    // Rebalancing sepcific
+    double fairness = 0.5;
 };
 
-std::ostream& operator<<(std::ostream& os, const Solution& solution);
+struct Solution {
+    std::vector<AgentSolution> agents;
+    BenchmarkMetadata meta;
+};
+
+std::ostream& operator<<(std::ostream& os, const AgentSolution& solution);

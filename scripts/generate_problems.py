@@ -52,17 +52,29 @@ def main():
         print()
         print(f"Generating {iteration + 1}/{args.count}")
         points = []
+        used_node_ids = set()
+
+
+        base_node, base_dist = ox.distance.nearest_nodes(graph, BASE_CORDS[1], BASE_CORDS[0], return_dist=True)
+        used_node_ids.add(base_node)
+
+        final_data_list = [[BASE_CORDS[0], BASE_CORDS[1], base_node]]
+
         while len(points) < NUM_POINTS:
             lat = np.random.normal(BASE_CORDS[0], std_dev)
             lon = np.random.normal(BASE_CORDS[1], std_dev)
             p = Point(lon, lat)
             if boundary.contains(p):
-                points.append((lat, lon))
-        
-        coords_list = [BASE_CORDS] + points
+                node_id, dist = ox.distance.nearest_nodes(graph, lon, lat, return_dist=True)
 
-        print("Snapping points to the omp nodes...")
-        nodes = ox.nearest_nodes(graph, [p[1] for p in coords_list], [p[0] for p in coords_list])
+                if dist <= 15.0 and node_id not in used_node_ids:
+                    used_node_ids.add(node_id)
+                    points.append((lat, lon))
+                    final_data_list.append([lat, lon, node_id])
+
+
+        nodes = [item[2] for item in final_data_list]
+        coords_for_save = [[item[0], item[1]] for item in final_data_list]
 
         print("Calculating distance matrix...")
         dist_matrix = []
@@ -72,15 +84,15 @@ def main():
             dist_matrix.append(row)
 
         problem_data = {
-            "points_count": len(coords_list),
+            "points_count": len(final_data_list),
             "min_load": 10,
             "max_load": 35, 
             "max_time": 36000,
             "max_distance": 1000000,
             "distance_matrix": dist_matrix,
-            "time_matrix": [dist_matrix * 14], 
-            "point_scores": [1000] * (len(coords_list) - 1),
-            "point_service_times": [300] * (len(coords_list) - 1)
+            "time_matrix": [dist_matrix] * 14,
+            "point_scores": [1000] * (len(final_data_list) - 1),
+            "point_service_times": [300] * (len(final_data_list) - 1)
         }
 
         next_idx = get_next_index(out_dir_problems)
@@ -91,7 +103,7 @@ def main():
             
         coords_path = os.path.join(out_dir_coords, f"{next_idx}.json")
         with open(coords_path, 'w') as f:
-            json.dump(coords_list, f)
+            json.dump(coords_for_save, f)
 
         print(f"Saved: {problem_path}")
 

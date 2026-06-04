@@ -6,8 +6,6 @@
 
 class RoutePack {
 public:
-    RoutePack& operator=(const RoutePack&) = default;
-
     size_t Size() const;
 
     const Route& GetRoute(size_t idx) const;
@@ -15,6 +13,8 @@ public:
     const std::vector<std::shared_ptr<Route>>& Routes() const;
 
     Route& MutateRoute(size_t idx);
+
+    void ReplaceRoute(size_t idx, std::shared_ptr<Route> route);
 
     void AddRoute(Route&& route);
 

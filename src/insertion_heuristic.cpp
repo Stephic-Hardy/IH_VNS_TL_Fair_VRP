@@ -1,4 +1,5 @@
 #include "insertion_heuristic.h"
+
 #include <random>
 #include <chrono>
 #include <unordered_set>
@@ -47,7 +48,7 @@ Route InsertionHeuristic::BuildInitialTour(const std::vector<int>& global_subset
             for (int v : unvisited) {
                 double min_dist = std::numeric_limits<double>::infinity();
                 for (int u : tour.Vertices()) {
-                    double dist = input_data.get_time_dependent_cost(0, u, v);
+                    double dist = input_data.GetTimeDependentCost(0, u, v);
                     min_dist = std::min(min_dist, dist);
                 }
                 if (min_dist > max_min_dist) {

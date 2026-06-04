@@ -3,15 +3,13 @@
 #include "problem_arguments.hpp"
 #include "neighborhood.h"
 
-#include <random>
 #include <chrono>
 #include <algorithm>
 #include <deque>
-#include <iostream>
+#include <quill/Logger.h>
+#include <quill/LogMacros.h>
 
 namespace {
-std::deque<std::string> tabu_list_moves;
-
 std::vector<std::unique_ptr<Neighborhood>> GlobalNeighborhoods() {
     std::vector<std::unique_ptr<Neighborhood>> nh;
     nh.push_back(std::make_unique<InterRelocateNeighborhood>());
@@ -23,22 +21,21 @@ std::vector<std::unique_ptr<Neighborhood>> GlobalNeighborhoods() {
     nh.push_back(std::make_unique<SwapNeighborhood>());
     return nh;
 }
-}
+}  // namespace
 
-
-RoutePack VNSTabu::VnsTabuGlobal(const InputData& input_data, double ST[[maybe_unused]], int AON,
+RoutePack VNSTabu::VnsTabuGlobal(const InputData& input_data, double ST [[maybe_unused]], int AON,
                                  int max_iterations_without_improve, int time_limit,
-                                 const RoutePack& initial_solution) {
+                                 const RoutePack& initial_solution, quill::Logger* logger) {
     auto start_time = std::chrono::steady_clock::now();
-    std::cout << "=================================================================" << std::endl;
-    std::cout << "STARTING INTERROUTE FAIRNESS VNS+TABU ALGORITHM" << std::endl;
-    std::cout << "=================================================================" << std::endl;
+    LOG_DEBUG(logger, "=================================================================");
+    LOG_DEBUG(logger, "STARTING INTERROUTE FAIRNESS VNS+TABU ALGORITHM");
+    LOG_DEBUG(logger, "=================================================================");
 
     RoutePack best_global = initial_solution;
     double best_global_max_cost = best_global.ComputeMaxDistance(input_data);
 
     RoutePack current = best_global;
-    tabu_list_moves.clear();
+    std::deque<std::string> tabu_list_moves;
     int iter_no_improve = 0;
 
     auto neighborhoods = GlobalNeighborhoods();
@@ -53,7 +50,8 @@ RoutePack VNSTabu::VnsTabuGlobal(const InputData& input_data, double ST[[maybe_u
 
     while (true) {
         auto elapsed = std::chrono::duration_cast<std::chrono::seconds>(
-            std::chrono::steady_clock::now() - start_time).count();
+                           std::chrono::steady_clock::now() - start_time)
+                           .count();
         if (elapsed >= time_limit || iter_no_improve >= max_iterations_without_improve) {
             break;
         }
@@ -73,8 +71,8 @@ RoutePack VNSTabu::VnsTabuGlobal(const InputData& input_data, double ST[[maybe_u
                             tabu_list_moves.end());
 
             if (penalty(neighbor) < penalty(best_global) - 1e-9) {
-                std::cout << "  *** GLOBAL FAIRNESS IMPROVED! MaxCost: " << best_global_max_cost <<
-                    " -> " << max_cost << " alpha: " << alpha << std::endl;
+                LOG_DEBUG(logger, "  *** GLOBAL FAIRNESS IMPROVED! MaxCost: {} -> {} alpha: {}",
+                          best_global_max_cost, max_cost, alpha);
                 best_global = neighbor;
                 best_global_max_cost = max_cost;
                 current = neighbor;

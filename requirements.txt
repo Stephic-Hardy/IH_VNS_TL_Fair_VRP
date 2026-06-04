@@ -1,0 +1,11 @@
+folium
+matplotlib
+networkx
+numpy
+osmnx
+pyrosm
+Requests
+Shapely
+pytest
+pybind11
+pybind11-stubgen

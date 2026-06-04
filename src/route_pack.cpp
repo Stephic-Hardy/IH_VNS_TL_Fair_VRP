@@ -1,6 +1,5 @@
 #include "route_pack.h"
 
-#include <numeric>
 #include <cmath>
 
 size_t RoutePack::Size() const {
@@ -18,6 +17,10 @@ const std::vector<std::shared_ptr<Route>>& RoutePack::Routes() const {
 Route& RoutePack::MutateRoute(size_t idx) {
     routes_[idx] = std::make_shared<Route>(*routes_[idx]);
     return *routes_[idx];
+}
+
+void RoutePack::ReplaceRoute(size_t idx, std::shared_ptr<Route> route) {
+    routes_[idx] = route;
 }
 
 void RoutePack::AddRoute(Route&& route) {

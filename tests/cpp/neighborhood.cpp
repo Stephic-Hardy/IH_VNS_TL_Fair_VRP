@@ -1,5 +1,6 @@
 #include <gtest/gtest.h>
 #include <vector>
+#include "move.h"
 
 #include "neighborhood.h"
 
@@ -87,11 +88,85 @@ TEST(Neighborhoods, TwoOptBoundsTest) {
 
     // Expect 10 moves:
     // len=3 -> 4 moves: reversing [1,3] / [2,4] / [3,5] / [4,6]
-    // len=3 -> 3 moves: reversing [1,4] / [2,5] / [3,6]
-    // len=3 -> 2 moves: reversing [1,5] / [2,6]
-    // len=3 -> 1 move:  reversing [1,6]
+    // len=4 -> 3 moves: reversing [1,4] / [2,5] / [3,6]
+    // len=5 -> 2 moves: reversing [1,5] / [2,6]
+    // len=6 -> 1 move:  reversing [1,6]
     EXPECT_EQ(interceptor.moves.size(), 10);
     EXPECT_EQ(interceptor.moves.front()->Type(), N4_2OPT);
+}
+
+TEST(Neighborhoods, TwoOptSmallTest) {
+    auto pack = CreateMockPack({0, 1, 2});
+
+    class MockTwoOpt : public TwoOptNeighborhood {
+    public:
+        using TwoOptNeighborhood::VisitEachMove;
+    };
+
+    MoveInterceptor interceptor;
+    MockTwoOpt().VisitEachMove(pack, 0, interceptor.evaluate);
+
+    EXPECT_EQ(interceptor.moves.size(), 0);
+}
+
+TEST(Neighborhoods, BlockMoveForwardBoundsTest) {
+    auto pack = CreateMockPack({0, 1, 2, 3, 4, 5, 6});
+
+    class MockBlockMoveForward : public BlockMoveForwardNeighborhood {
+    public:
+        using BlockMoveForwardNeighborhood::VisitEachMove;
+    };
+
+    MoveInterceptor interceptor;
+    MockBlockMoveForward().VisitEachMove(pack, 0, interceptor.evaluate);
+
+    // Expect 3 moves: [1,3] / [2,4] / [3,5]
+    EXPECT_EQ(interceptor.moves.size(), 3);
+    EXPECT_EQ(interceptor.moves.front()->Type(), N5_MOVE_FWD_K);
+}
+
+TEST(Neighborhoods, BlockMoveForwardSmallTest) {
+    auto pack = CreateMockPack({0, 1, 2});
+
+    class MockBlockMoveForward : public BlockMoveForwardNeighborhood {
+    public:
+        using BlockMoveForwardNeighborhood::VisitEachMove;
+    };
+
+    MoveInterceptor interceptor;
+    MockBlockMoveForward().VisitEachMove(pack, 0, interceptor.evaluate);
+
+    EXPECT_EQ(interceptor.moves.size(), 0);
+}
+
+TEST(Neighborhoods, BlockMoveBackwardBoundsTest) {
+    auto pack = CreateMockPack({0, 1, 2, 3, 4, 5, 6});
+
+    class MockBlockMoveBackward : public BlockMoveBackwardNeighborhood {
+    public:
+        using BlockMoveBackwardNeighborhood::VisitEachMove;
+    };
+
+    MoveInterceptor interceptor;
+    MockBlockMoveBackward().VisitEachMove(pack, 0, interceptor.evaluate);
+
+    // Expect 3 moves: [2,4] / [3,5] / [4,6]
+    EXPECT_EQ(interceptor.moves.size(), 3);
+    EXPECT_EQ(interceptor.moves.front()->Type(), N6_MOVE_BWD_K);
+}
+
+TEST(Neighborhoods, BlockMoveBackwardSmallTest) {
+    auto pack = CreateMockPack({0, 1, 2});
+
+    class MockBlockMoveBackward : public BlockMoveBackwardNeighborhood {
+    public:
+        using BlockMoveBackwardNeighborhood::VisitEachMove;
+    };
+
+    MoveInterceptor interceptor;
+    MockBlockMoveBackward().VisitEachMove(pack, 0, interceptor.evaluate);
+
+    EXPECT_EQ(interceptor.moves.size(), 0);
 }
 
 TEST(Neighborhoods, InterRelocateBoundsTest) {

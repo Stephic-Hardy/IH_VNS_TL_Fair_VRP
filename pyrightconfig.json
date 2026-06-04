@@ -1,0 +1,14 @@
+{
+  "executionEnvironments": [
+    {
+      "root": ".",
+      "extraPaths": [
+        "./stubs",
+        "./build/tdtsp_python.cpython-311-x86_64-linux-gnu.so"
+      ]
+    }
+  ],
+  "pythonVersion": "3.11",
+  "venvPath": ".venv",
+  "venv": ".venv"
+}

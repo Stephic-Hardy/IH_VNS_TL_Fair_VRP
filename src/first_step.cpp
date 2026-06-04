@@ -46,7 +46,7 @@ FirstStepAnswer DoFirstStep(const InputData &input, const std::vector<bool>& exc
 
                     int64_t travel_time;
                     if constexpr (is_time_dependent) {
-                        travel_time = input.get_time_dependent_cost(dp[cur_load][i].time, i, j);
+                        travel_time = input.GetTimeDependentCost(dp[cur_load][i].time, i, j);
                     } else {
                         travel_time = input.time_matrix[0][i][j];
                     }
