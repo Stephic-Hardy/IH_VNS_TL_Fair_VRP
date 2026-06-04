@@ -48,7 +48,8 @@ void AnnealingOptimizer::EnrichMeta(BenchmarkMetadata &meta) {
 
 RoutePack AnnealingOptimizer::Optimize(RoutePack &routes, const InputData &input_data) {
     LOG_DEBUG(logger_, "Starting global fairness optimization across all routes...");
-    routes = VNSTabu::VnsTabuGlobal(input_data, st_, aon_, max_iter_, time_limit_, routes, logger_);
+    routes = VNSTabu::VnsTabuGlobal(input_data, st_, aon_, max_iter_, time_limit_, routes, alpha_,
+                                    logger_);
 
     for (size_t route_idx = 0; route_idx < routes.Size(); ++route_idx) {
         LOG_DEBUG(logger_, "Agent {}: optimizing {} points...", route_idx,

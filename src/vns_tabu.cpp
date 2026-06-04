@@ -3,6 +3,7 @@
 #include "problem_arguments.hpp"
 #include "insertion_heuristic.h"
 #include "neighborhood.h"
+#include "solution_metrics.h"
 
 #include <random>
 #include <chrono>
@@ -27,10 +28,12 @@ std::vector<std::unique_ptr<Neighborhood>> Neighborhoods() {
 RoutePack VNSTabu::VnsWithoutTabu(const RoutePack& start_solution, const InputData& input_data,
                                   int max_iter, size_t route) {
     RoutePack best = start_solution;
-    double best_cost = best.GetRoute(route).ComputeCost(input_data);
-    double best_value = best.GetRoute(route).ComputeValue(input_data);
-    double best_distance = best.GetRoute(route).ComputeDistance(input_data);
 
+    SolutionMetrics best_metrics = {
+        best.GetRoute(route).ComputeCost(input_data),
+        best.GetRoute(route).ComputeValue(input_data),
+        best.GetRoute(route).ComputeDistance(input_data),
+    };
     RoutePack current = best;
 
     auto neighborhoods = Neighborhoods();
@@ -40,34 +43,26 @@ RoutePack VNSTabu::VnsWithoutTabu(const RoutePack& start_solution, const InputDa
 
         for (auto& neighborhood : neighborhoods) {
             auto [neighbor, _] = neighborhood->FindBestNeighbor(current, input_data, route);
-            double neighbor_cost = neighbor.GetRoute(route).ComputeCost(input_data);
-            double neighbor_value = neighbor.GetRoute(route).ComputeValue(input_data);
-            double neighbor_distance = neighbor.GetRoute(route).ComputeDistance(input_data);
 
-            double current_cost = current.GetRoute(route).ComputeCost(input_data);
-            double current_value = current.GetRoute(route).ComputeValue(input_data);
-            double current_distance = current.GetRoute(route).ComputeDistance(input_data);
+            SolutionMetrics neighbor_metrics = {
+                neighbor.GetRoute(route).ComputeCost(input_data),
+                neighbor.GetRoute(route).ComputeValue(input_data),
+                neighbor.GetRoute(route).ComputeDistance(input_data),
+            };
 
-            // Сравнение: Value -> время -> расстояние
-            if (neighbor_value > best_value + 1e-9 ||
-                (std::abs(neighbor_value - best_value) < 1e-9 &&
-                 neighbor_cost < best_cost - 1e-9) ||
-                (std::abs(neighbor_value - best_value) < 1e-9 &&
-                 std::abs(neighbor_cost - best_cost) < 1e-9 &&
-                 neighbor_distance < best_distance - 1e-9)) {
+            SolutionMetrics current_metrics = {
+                current.GetRoute(route).ComputeCost(input_data),
+                current.GetRoute(route).ComputeValue(input_data),
+                current.GetRoute(route).ComputeDistance(input_data),
+            };
+
+            if (neighbor_metrics > best_metrics) {
                 best = neighbor;
-                best_cost = neighbor_cost;
-                best_value = neighbor_value;
-                best_distance = neighbor_distance;
+                best_metrics = neighbor_metrics;
                 current = best;
                 improved = true;
                 break;
-            } else if (neighbor_value > current_value + 1e-9 ||
-                       (std::abs(neighbor_value - current_value) < 1e-9 &&
-                        neighbor_cost < current_cost - 1e-9) ||
-                       (std::abs(neighbor_value - current_value) < 1e-9 &&
-                        std::abs(neighbor_cost - current_cost) < 1e-9 &&
-                        neighbor_distance < current_distance - 1e-9)) {
+            } else if (neighbor_metrics > current_metrics) {
                 current = neighbor;
                 improved = true;
                 break;
@@ -102,19 +97,23 @@ RoutePack VNSTabu::VnsTabuAdvanced(const InputData& input_data, double ST, int A
     }
 
     RoutePack best_global = initial_solution;
-    double best_global_cost = best_global.GetRoute(route).ComputeCost(input_data);
-    double best_global_value = best_global.GetRoute(route).ComputeValue(input_data);
-    double best_global_distance = best_global.GetRoute(route).ComputeDistance(input_data);
+    SolutionMetrics best_metrics = {
+        best_global.GetRoute(route).ComputeValue(input_data),
+        best_global.GetRoute(route).ComputeCost(input_data),
+        best_global.GetRoute(route).ComputeDistance(input_data),
+    };
     RoutePack current = best_global;
 
-    
-    std::deque<std::string> tabu_list_moves;
-    std::deque<std::string> tabu_list_2opt;
+    std::deque<TabuHash> tabu_list_moves;
+    std::deque<TabuHash> tabu_list_2opt;
 
     std::vector<RoutePack> LT;
     int iterations_without_global_improve = 0;
     int total_iterations = 0;
     bool global_improved_in_iteration = false;
+
+    std::random_device rnd_device;
+    std::mt19937 rnd_generator(rnd_device());
 
     auto neighborhoods = Neighborhoods();
 
@@ -144,101 +143,62 @@ RoutePack VNSTabu::VnsTabuAdvanced(const InputData& input_data, double ST, int A
                 continue;
             }
 
-            double neighbor_cost = neighbor.GetRoute(route).ComputeCost(input_data);
-            double neighbor_value = neighbor.GetRoute(route).ComputeValue(input_data);
-            double neighbor_distance = neighbor.GetRoute(route).ComputeDistance(input_data);
+            SolutionMetrics neighbor_metrics = {
+                neighbor.GetRoute(route).ComputeCost(input_data),
+                neighbor.GetRoute(route).ComputeValue(input_data),
+                neighbor.GetRoute(route).ComputeDistance(input_data),
+            };
 
             bool in_tabu = false;
-            std::string move_hash;
 
-            move_hash = move->GetTabuHash();
-            in_tabu = (std::find(tabu_list_moves.begin(), tabu_list_moves.end(), move_hash) !=
-                       tabu_list_moves.end());
+            TabuHash move_hash = move->GetTabuHash();
+            in_tabu = (std::ranges::find(tabu_list_moves, move_hash) != tabu_list_moves.end());
 
-            // Новый порядок оптимизации: Value -> время -> расстояние
-            if (neighbor_value > best_global_value + 1e-9 ||
-                (std::abs(neighbor_value - best_global_value) < 1e-9 &&
-                 neighbor_cost < best_global_cost - 1e-9) ||
-                (std::abs(neighbor_value - best_global_value) < 1e-9 &&
-                 std::abs(neighbor_cost - best_global_cost) < 1e-9 &&
-                 neighbor_distance < best_global_distance - 1e-9)) {
+            if (neighbor_metrics > best_metrics) {
+                LOG_DEBUG(logger, "  *** GLOBAL IMPROVEMENT FOUND! ***");
+                LOG_DEBUG(logger, "  Old value: {} -> New value: {}", best_metrics.value,
+                          neighbor_metrics.value);
+                LOG_DEBUG(logger, "  Old time: {} -> New time: {}", best_metrics.cost,
+                          neighbor_metrics.cost);
+                LOG_DEBUG(logger, "  Distance: {} (within limit {})", neighbor_metrics.distance,
+                          input_data.max_distance);
 
-                if (neighbor_distance <= input_data.max_distance &&
-                    neighbor_cost <= input_data.max_time) {
-                    LOG_DEBUG(logger, "  *** GLOBAL IMPROVEMENT FOUND! ***");
-                    LOG_DEBUG(logger, "  Old value: {} -> New value: {}", best_global_value,
-                              neighbor_value);
-                    LOG_DEBUG(logger, "  Old time: {} -> New time: {}", best_global_cost,
-                              neighbor_cost);
-                    LOG_DEBUG(logger, "  Distance: {} (within limit {})", neighbor_distance,
-                              input_data.max_distance);
+                best_global = neighbor;
+                best_metrics = neighbor_metrics;
 
-                    best_global = neighbor;
-                    best_global_cost = neighbor_cost;
-                    best_global_value = neighbor_value;
-                    best_global_distance = neighbor_distance;
-                    current = best_global;
-                    improved_in_neighborhood = true;
-                    global_improved_in_iteration = true;
+                current = best_global;
+                improved_in_neighborhood = true;
+                global_improved_in_iteration = true;
 
+                tabu_list_moves.push_back(move_hash);
+
+                iterations_without_global_improve = 0;
+                break;
+            }
+
+            SolutionMetrics current_metrics = {
+                current.GetRoute(route).ComputeValue(input_data),
+                current.GetRoute(route).ComputeCost(input_data),
+                current.GetRoute(route).ComputeDistance(input_data),
+            };
+
+            if (!in_tabu && neighbor_metrics > current_metrics) {
+                current = neighbor;
+                improved_in_neighborhood = true;
+
+                auto move_type = move->Type();
+                if (move_type == N1_REMOVE_INSERT || move_type == N2_SWAP_ADJ ||
+                    move_type == N3_SWAP) {
                     tabu_list_moves.push_back(move_hash);
-
-                    iterations_without_global_improve = 0;
-                    break;
-                } else {
-                    LOG_DEBUG(logger, "  *** VALUE/TIME IMPROVED BUT CONSTRAINTS VIOLATED! ***");
-                    LOG_DEBUG(logger, "  Improved value: {} -> {}", neighbor_value,
-                              best_global_value);
-                    LOG_DEBUG(logger, "  Distance: {} > limit {} or Time: {} > limit {}",
-                              neighbor_distance, input_data.max_distance, neighbor_cost,
-                              input_data.max_time);
-                    continue;
+                } else if (move_type == N4_2OPT) {
+                    tabu_list_2opt.push_back(move_hash);
                 }
-            } else if (!in_tabu) {
-                double current_value = current.GetRoute(route).ComputeValue(input_data);
-                double current_cost = current.GetRoute(route).ComputeCost(input_data);
-                double current_distance = current.GetRoute(route).ComputeDistance(input_data);
-
-                // Новый порядок оптимизации: Value -> время -> расстояние
-                if ((neighbor_value > current_value + 1e-9 ||
-                     (std::abs(neighbor_value - current_value) < 1e-9 &&
-                      neighbor_cost < current_cost - 1e-9) ||
-                     (std::abs(neighbor_value - current_value) < 1e-9 &&
-                      std::abs(neighbor_cost - current_cost) < 1e-9 &&
-                      neighbor_distance < current_distance - 1e-9)) &&
-                    neighbor_distance <= input_data.max_distance &&
-                    neighbor_cost <= input_data.max_time) {
-
-                    current = neighbor;
-                    improved_in_neighborhood = true;
-
-                    auto move_type = move->Type();
-                    if (move_type == N1_REMOVE_INSERT || move_type == N2_SWAP_ADJ ||
-                        move_type == N3_SWAP) {
-                        tabu_list_moves.push_back(move_hash);
-                    } else if (move_type == N4_2OPT) {
-                        tabu_list_2opt.push_back(move_hash);
-                    }
-                    break;
-                } else if (neighbor_value > current_value + 1e-9 ||
-                           (std::abs(neighbor_value - current_value) < 1e-9 &&
-                            neighbor_cost < current_cost - 1e-9) ||
-                           (std::abs(neighbor_value - current_value) < 1e-9 &&
-                            std::abs(neighbor_cost - current_cost) < 1e-9 &&
-                            neighbor_distance < current_distance - 1e-9)) {
-                    LOG_DEBUG(logger,
-                              "  *** LOCAL IMPROVEMENT REJECTED - CONSTRAINTS VIOLATED ***");
-                    LOG_DEBUG(logger, "  Distance: {} > limit {} or Time: {} > limit {}",
-                              neighbor_distance, input_data.max_distance, neighbor_cost,
-                              input_data.max_time);
-                    continue;
-                }
+                break;
             }
         }
 
         double current_value = current.GetRoute(route).ComputeValue(input_data);
-        double threshold_value = best_global_value * (1.0 - ST);
-        // Для value улучшение это увеличение, поэтому threshold ниже
+        double threshold_value = best_metrics.value * (1.0 - ST);
 
         if (!improved_in_neighborhood) {
             if (current_value >= threshold_value) {
@@ -254,38 +214,18 @@ RoutePack VNSTabu::VnsTabuAdvanced(const InputData& input_data, double ST, int A
                 RoutePack improved = VnsWithoutTabu(LT[i], input_data, 50, route);
                 LT_VNS.push_back(improved);
 
-                double improved_cost = improved.GetRoute(route).ComputeCost(input_data);
-                double improved_value = improved.GetRoute(route).ComputeValue(input_data);
-                double improved_distance = improved.GetRoute(route).ComputeDistance(input_data);
+                SolutionMetrics improved_metrics = {
+                    improved.GetRoute(route).ComputeCost(input_data),
+                    improved.GetRoute(route).ComputeValue(input_data),
+                    improved.GetRoute(route).ComputeDistance(input_data),
+                };
 
-                // Новый порядок оптимизации: Value -> время -> расстояние
-                if ((improved_value > best_global_value + 1e-9 ||
-                     (std::abs(improved_value - best_global_value) < 1e-9 &&
-                      improved_cost < best_global_cost - 1e-9) ||
-                     (std::abs(improved_value - best_global_value) < 1e-9 &&
-                      std::abs(improved_cost - best_global_cost) < 1e-9 &&
-                      improved_distance < best_global_distance - 1e-9)) &&
-                    improved_distance <= input_data.max_distance &&
-                    improved_cost <= input_data.max_time) {
-
+                if (improved_metrics > best_metrics) {
                     best_global = improved;
-                    best_global_cost = improved_cost;
-                    best_global_value = improved_value;
-                    best_global_distance = improved_distance;
+                    best_metrics = improved_metrics;
                     global_improved_in_iteration = true;
                     LOG_DEBUG(logger, "  *** VNS IMPROVED GLOBAL BEST! New value: {} ***",
-                              best_global_value);
-                } else if (improved_value > best_global_value + 1e-9 ||
-                           (std::abs(improved_value - best_global_value) < 1e-9 &&
-                            improved_cost < best_global_cost - 1e-9) ||
-                           (std::abs(improved_value - best_global_value) < 1e-9 &&
-                            std::abs(improved_cost - best_global_cost) < 1e-9 &&
-                            improved_distance < best_global_distance - 1e-9)) {
-                    LOG_DEBUG(logger, "  *** VNS IMPROVEMENT REJECTED - CONSTRAINTS VIOLATED ***");
-                    LOG_DEBUG(logger,
-                              "  Improved value: {} Distance: {} > limit {} or Time: {} > limit {}",
-                              improved_value, improved_distance, input_data.max_distance,
-                              improved_cost, input_data.max_time);
+                              best_metrics.value);
                 }
             }
 
@@ -293,44 +233,24 @@ RoutePack VNSTabu::VnsTabuAdvanced(const InputData& input_data, double ST, int A
             tabu_list_2opt.clear();
 
             if (!LT_VNS.empty()) {
-                std::random_device rd;
-                std::mt19937 gen(rd());
                 std::uniform_int_distribution<size_t> dist(0, LT_VNS.size() - 1);
-                current = LT_VNS[dist(gen)];
+                current = LT_VNS[dist(rnd_generator)];
             }
 
             LT.clear();
             current.MutateRoute(route) =
                 InsertionHeuristic::BuildInitialTour(agent_subset, input_data);
-            double new_cost = current.GetRoute(route).ComputeCost(input_data);
-            double new_value = current.GetRoute(route).ComputeValue(input_data);
-            double new_distance = current.GetRoute(route).ComputeDistance(input_data);
 
-            if ((new_value > best_global_value + 1e-9 ||
-                 (std::abs(new_value - best_global_value) < 1e-9 &&
-                  new_cost < best_global_cost - 1e-9) ||
-                 (std::abs(new_value - best_global_value) < 1e-9 &&
-                  std::abs(new_cost - best_global_cost) < 1e-9 &&
-                  new_distance < best_global_distance - 1e-9)) &&
-                new_distance <= input_data.max_distance && new_cost <= input_data.max_time) {
+            SolutionMetrics new_metrics = {
+                current.GetRoute(route).ComputeCost(input_data),
+                current.GetRoute(route).ComputeValue(input_data),
+                current.GetRoute(route).ComputeDistance(input_data),
+            };
 
+            if (new_metrics > best_metrics) {
                 best_global = current;
-                best_global_cost = new_cost;
-                best_global_value = new_value;
-                best_global_distance = new_distance;
+                best_metrics = new_metrics;
                 global_improved_in_iteration = true;
-            } else if (new_value > best_global_value + 1e-9 ||
-                       (std::abs(new_value - best_global_value) < 1e-9 &&
-                        new_cost < best_global_cost - 1e-9) ||
-                       (std::abs(new_value - best_global_value) < 1e-9 &&
-                        std::abs(new_cost - best_global_cost) < 1e-9 &&
-                        new_distance < best_global_distance - 1e-9)) {
-                LOG_DEBUG(logger,
-                          "  *** INITIAL TOUR IMPROVEMENT REJECTED - CONSTRAINTS VIOLATED ***");
-                LOG_DEBUG(logger,
-                          "  Improved value: {} Distance: {} > limit {} or Time: {} > limit {}",
-                          new_value, new_distance, input_data.max_distance, new_cost,
-                          input_data.max_time);
             }
 
             if (global_improved_in_iteration) {
@@ -361,9 +281,9 @@ RoutePack VNSTabu::VnsTabuAdvanced(const InputData& input_data, double ST, int A
     LOG_DEBUG(logger, "ALGORITHM FINISHED");
     LOG_DEBUG(logger, "Total iterations: {}", total_iterations);
     LOG_DEBUG(logger, "Total time: {}s", total_elapsed);
-    LOG_DEBUG(logger, "Final best value: {}", best_global_value);
-    LOG_DEBUG(logger, "Final best cost: {}", best_global_cost);
-    LOG_DEBUG(logger, "Total distance: {}", best_global_distance);
+    LOG_DEBUG(logger, "Final best value: {}", best_metrics.value);
+    LOG_DEBUG(logger, "Final best cost: {}", best_metrics.cost);
+    LOG_DEBUG(logger, "Total distance: {}", best_metrics.distance);
     LOG_DEBUG(logger, "=================================================================");
     return best_global;
 }

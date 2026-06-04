@@ -17,5 +17,6 @@ public:
 
     static RoutePack VnsTabuGlobal(const InputData& input_data, double ST, int AON,
                                    int max_iterations_without_improve, int time_limit,
-                                   const RoutePack& initial_solution, quill::Logger* logger);
+                                   const RoutePack& initial_solution, double alpha,
+                                   quill::Logger* logger);
 };

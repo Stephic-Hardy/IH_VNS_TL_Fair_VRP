@@ -2,6 +2,23 @@
 
 #include <algorithm>
 
+namespace {
+// the following implementation was taken from
+// https://github.com/HowardHinnant/hash_append/issues/7
+// which is a repo for the N3980 proposal
+// http://www.open-std.org/jtc1/sc22/wg21/docs/papers/2014/n3980.html
+inline void HashCombine(uint64_t& seed, uint64_t value) {
+    seed ^= value + 0x9e3779b97f4a7c15ULL + (seed << 12) + (seed >> 4);
+}
+
+template <typename... Args>
+uint64_t ComputeHash(Args... args) {
+    uint64_t seed = 0;
+    (HashCombine(seed, static_cast<uint64_t>(args)), ...);
+    return seed;
+}
+}  // namespace
+
 Move::Move(MoveTypes type, int route_idx) : route_idx_(route_idx), type_(type) {
 }
 
@@ -23,13 +40,11 @@ RoutePack RemoveInsertMove::Apply(const RoutePack& sol) const {
     new_sol.MutateRoute(route_idx_).Update([this](auto& vertices) {
         int vertex = vertices[remove_pos_];
         if (remove_pos_ < insert_pos_) {
-            std::copy(vertices.begin() + remove_pos_ + 1,
-                      vertices.begin() + insert_pos_ + 1,
+            std::copy(vertices.begin() + remove_pos_ + 1, vertices.begin() + insert_pos_ + 1,
                       vertices.begin() + remove_pos_);
             vertices[insert_pos_] = vertex;
         } else {
-            std::copy(vertices.begin() + insert_pos_,
-                      vertices.begin() + remove_pos_,
+            std::copy(vertices.begin() + insert_pos_, vertices.begin() + remove_pos_,
                       vertices.begin() + insert_pos_ + 1);
             vertices[insert_pos_] = vertex;
         }
@@ -38,9 +53,8 @@ RoutePack RemoveInsertMove::Apply(const RoutePack& sol) const {
     return new_sol;
 }
 
-std::string RemoveInsertMove::GetTabuHash() const {
-    return "RELOC_" + std::to_string(route_idx_) + "_" +
-           std::to_string(remove_pos_);
+TabuHash RemoveInsertMove::GetTabuHash() const {
+    return ComputeHash(type_, route_idx_, remove_pos_, insert_pos_);
 }
 
 std::unique_ptr<Move> RemoveInsertMove::Clone() const {
@@ -55,8 +69,8 @@ MoveTypes SwapMove::DetermineType(size_t pos1, size_t pos2) {
     return N3_SWAP;
 }
 
-SwapMove::SwapMove(int r, size_t pos1, size_t pos2) : Move(DetermineType(pos1, pos2)),
-                                                      route_idx_(r), pos1_(pos1), pos2_(pos2) {
+SwapMove::SwapMove(int r, size_t pos1, size_t pos2)
+    : Move(DetermineType(pos1, pos2)), route_idx_(r), pos1_(pos1), pos2_(pos2) {
 }
 
 RoutePack SwapMove::Apply(const RoutePack& sol) const {
@@ -69,19 +83,16 @@ RoutePack SwapMove::Apply(const RoutePack& sol) const {
     return new_sol;
 }
 
-std::string SwapMove::GetTabuHash() const {
-    return "SWAP_" + std::to_string(route_idx_) + "_" +
-           std::to_string(std::min(pos1_, pos2_)) + "_" + std::to_string(std::max(pos1_, pos2_));
+TabuHash SwapMove::GetTabuHash() const {
+    return ComputeHash(type_, route_idx_, std::min(pos1_, pos2_), std::max(pos1_, pos2_));
 }
-
 
 std::unique_ptr<Move> SwapMove::Clone() const {
     return std::make_unique<SwapMove>(*this);
 }
 
-TwoOptMove::TwoOptMove(int r, size_t start, size_t end) : Move(N4_2OPT), route_idx_(r),
-                                                          start_pos_(start),
-                                                          end_pos_(end) {
+TwoOptMove::TwoOptMove(int r, size_t start, size_t end)
+    : Move(N4_2OPT), route_idx_(r), start_pos_(start), end_pos_(end) {
 }
 
 RoutePack TwoOptMove::Apply(const RoutePack& sol) const {
@@ -94,9 +105,8 @@ RoutePack TwoOptMove::Apply(const RoutePack& sol) const {
     return new_sol;
 }
 
-std::string TwoOptMove::GetTabuHash() const {
-    return "2OPT_" + std::to_string(route_idx_) + "_" +
-           std::to_string(start_pos_) + "_" + std::to_string(end_pos_);
+TabuHash TwoOptMove::GetTabuHash() const {
+    return ComputeHash(type_, route_idx_, start_pos_, end_pos_);
 }
 
 std::unique_ptr<Move> TwoOptMove::Clone() const {
@@ -104,7 +114,10 @@ std::unique_ptr<Move> TwoOptMove::Clone() const {
 }
 
 BlockRelocateMove::BlockRelocateMove(int r, size_t start, size_t size, size_t insert)
-    : Move(DetermineType(start, insert)), route_idx_(r), start_pos_(start), length_(size),
+    : Move(DetermineType(start, insert)),
+      route_idx_(r),
+      start_pos_(start),
+      length_(size),
       insert_pos_(insert) {
 }
 
@@ -123,10 +136,8 @@ RoutePack BlockRelocateMove::Apply(const RoutePack& sol) const {
     return new_sol;
 }
 
-std::string BlockRelocateMove::GetTabuHash() const {
-    return "BLKREL_" + std::to_string(route_idx_) + "_" +
-           std::to_string(start_pos_) + "_" + std::to_string(length_) + "_" +
-           std::to_string(insert_pos_);
+TabuHash BlockRelocateMove::GetTabuHash() const {
+    return ComputeHash(type_, route_idx_, start_pos_, length_, insert_pos_);
 }
 
 std::unique_ptr<Move> BlockRelocateMove::Clone() const {
@@ -154,9 +165,12 @@ RoutePack ReorderBlockMove::Apply(const RoutePack& sol) const {
     return new_sol;
 }
 
-std::string ReorderBlockMove::GetTabuHash() const {
-    return "REORDER_" + std::to_string(route_idx_) + "_" +
-           std::to_string(start_pos_) + "_" + std::to_string(new_order_.size());
+TabuHash ReorderBlockMove::GetTabuHash() const {
+    uint64_t hash = ComputeHash(type_, route_idx_, start_pos_, new_order_.size());
+    for (int v : new_order_) {
+        HashCombine(hash, v);
+    }
+    return hash;
 }
 
 std::unique_ptr<Move> ReorderBlockMove::Clone() const {
@@ -171,20 +185,15 @@ RoutePack InterRelocateMove::Apply(const RoutePack& sol) const {
     RoutePack new_sol = sol;
     int vertex = sol.GetRoute(from_route_).Vertices()[from_pos_];
 
-    new_sol.MutateRoute(from_route_).Update([&](auto& v) {
-        v.erase(v.begin() + from_pos_);
-    });
+    new_sol.MutateRoute(from_route_).Update([&](auto& v) { v.erase(v.begin() + from_pos_); });
 
-    new_sol.MutateRoute(to_route_).Update([&](auto& v) {
-        v.insert(v.begin() + to_pos_, vertex);
-    });
+    new_sol.MutateRoute(to_route_).Update([&](auto& v) { v.insert(v.begin() + to_pos_, vertex); });
 
     return new_sol;
 }
 
-std::string InterRelocateMove::GetTabuHash() const {
-    return "IRELOC_" + std::to_string(from_route_) + "_" + std::to_string(to_route_) +
-           "_" + std::to_string(from_pos_);
+TabuHash InterRelocateMove::GetTabuHash() const {
+    return ComputeHash(type_, from_route_, to_route_, from_pos_, to_pos_);
 }
 
 std::unique_ptr<Move> InterRelocateMove::Clone() const {
@@ -195,7 +204,6 @@ std::vector<int> InterRelocateMove::AffectedRoutes() const {
     return {from_route_, to_route_};
 }
 
-
 InterSwapMove::InterSwapMove(int r1, int r2, size_t p1, size_t p2)
     : Move(N_INTER_SWAP), route1_(r1), route2_(r2), pos1_(p1), pos2_(p2) {
 }
@@ -205,19 +213,21 @@ RoutePack InterSwapMove::Apply(const RoutePack& sol) const {
     int v1 = sol.GetRoute(route1_).Vertices()[pos1_];
     int v2 = sol.GetRoute(route2_).Vertices()[pos2_];
 
-    new_sol.MutateRoute(route1_).Update([&](auto& v) {
-        v[pos1_] = v2;
-    });
-    new_sol.MutateRoute(route2_).Update([&](auto& v) {
-        v[pos2_] = v1;
-    });
+    new_sol.MutateRoute(route1_).Update([&](auto& v) { v[pos1_] = v2; });
+    new_sol.MutateRoute(route2_).Update([&](auto& v) { v[pos2_] = v1; });
 
     return new_sol;
 }
 
-std::string InterSwapMove::GetTabuHash() const {
-    return "ISWAP_" + std::to_string(route1_) + "_" + std::to_string(route2_) +
-           "_" + std::to_string(pos1_) + "_" + std::to_string(pos2_);
+TabuHash InterSwapMove::GetTabuHash() const {
+    int r1 = route1_, r2 = route2_;
+    size_t p1 = pos1_, p2 = pos2_;
+
+    if (r1 > r2) {
+        std::swap(r1, r2);
+        std::swap(p1, p2);
+    }
+    return ComputeHash(type_, r1, r2, p1, p2);
 }
 
 std::unique_ptr<Move> InterSwapMove::Clone() const {
@@ -228,11 +238,15 @@ std::vector<int> InterSwapMove::AffectedRoutes() const {
     return {route1_, route2_};
 }
 
-
 CrossExchangeMove::CrossExchangeMove(int r1, int r2, size_t start1, size_t len1, size_t start2,
                                      size_t len2)
-    : Move(N_CROSS_EXCHANGE), route1_(r1), route2_(r2), start1_(start1), len1_(len1),
-      start2_(start2), len2_(len2) {
+    : Move(N_CROSS_EXCHANGE),
+      route1_(r1),
+      route2_(r2),
+      start1_(start1),
+      len1_(len1),
+      start2_(start2),
+      len2_(len2) {
 }
 
 RoutePack CrossExchangeMove::Apply(const RoutePack& sol) const {
@@ -241,10 +255,8 @@ RoutePack CrossExchangeMove::Apply(const RoutePack& sol) const {
     const auto& route1_verts = sol.GetRoute(route1_).Vertices();
     const auto& route2_verts = sol.GetRoute(route2_).Vertices();
 
-    std::vector<int> seg1(route1_verts.begin() + start1_,
-                          route1_verts.begin() + start1_ + len1_);
-    std::vector<int> seg2(route2_verts.begin() + start2_,
-                          route2_verts.begin() + start2_ + len2_);
+    std::vector<int> seg1(route1_verts.begin() + start1_, route1_verts.begin() + start1_ + len1_);
+    std::vector<int> seg2(route2_verts.begin() + start2_, route2_verts.begin() + start2_ + len2_);
 
     new_sol.MutateRoute(route1_).Update([&](std::vector<int>& v) {
         v.erase(v.begin() + start1_, v.begin() + start1_ + len1_);
@@ -259,10 +271,16 @@ RoutePack CrossExchangeMove::Apply(const RoutePack& sol) const {
     return new_sol;
 }
 
-std::string CrossExchangeMove::GetTabuHash() const {
-    return "CROSSEX_" + std::to_string(route1_) + "_" + std::to_string(route2_) +
-           "_" + std::to_string(start1_) + "_" + std::to_string(len1_) +
-           "_" + std::to_string(start2_) + "_" + std::to_string(len2_);
+TabuHash CrossExchangeMove::GetTabuHash() const {
+    int r1 = route1_, r2 = route2_;
+    size_t s1 = start1_, l1 = len1_, s2 = start2_, l2 = len2_;
+
+    if (r1 > r2) {
+        std::swap(r1, r2);
+        std::swap(s1, s2);
+        std::swap(l1, l2);
+    }
+    return ComputeHash(type_, r1, r2, s1, l1, s2, l2);
 }
 
 std::unique_ptr<Move> CrossExchangeMove::Clone() const {
@@ -295,19 +313,21 @@ RoutePack TwoOptStarMove::Apply(const RoutePack& sol) const {
     std::vector<int> new_route2 = prefix2;
     new_route2.insert(new_route2.end(), suffix1.begin(), suffix1.end());
 
-    new_sol.MutateRoute(route1_).Update([&](std::vector<int>& v) {
-        v = new_route1;
-    });
-    new_sol.MutateRoute(route2_).Update([&](std::vector<int>& v) {
-        v = new_route2;
-    });
+    new_sol.MutateRoute(route1_).Update([&](std::vector<int>& v) { v = new_route1; });
+    new_sol.MutateRoute(route2_).Update([&](std::vector<int>& v) { v = new_route2; });
 
     return new_sol;
 }
 
-std::string TwoOptStarMove::GetTabuHash() const {
-    return "2OPTSTAR_" + std::to_string(route1_) + "_" + std::to_string(route2_) +
-           "_" + std::to_string(edge1_idx_) + "_" + std::to_string(edge2_idx_);
+TabuHash TwoOptStarMove::GetTabuHash() const {
+    int r1 = route1_, r2 = route2_;
+    size_t e1 = edge1_idx_, e2 = edge2_idx_;
+
+    if (r1 > r2) {
+        std::swap(r1, r2);
+        std::swap(e1, e2);
+    }
+    return ComputeHash(type_, r1, r2, e1, e2);
 }
 
 std::unique_ptr<Move> TwoOptStarMove::Clone() const {

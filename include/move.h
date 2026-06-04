@@ -17,6 +17,8 @@ enum MoveTypes {
     N_TWO_OPT_STAR,
 };
 
+using TabuHash = uint64_t;
+
 class Move : std::enable_shared_from_this<Move> {
 public:
     Move(MoveTypes type, int route_idx = 0);
@@ -25,7 +27,7 @@ public:
 
     virtual RoutePack Apply(const RoutePack& sol) const = 0;
 
-    virtual std::string GetTabuHash() const = 0;
+    virtual TabuHash GetTabuHash() const = 0;
 
     MoveTypes Type() const;
 
@@ -47,7 +49,7 @@ public:
 
     RoutePack Apply(const RoutePack& sol) const override;
 
-    std::string GetTabuHash() const override;
+    TabuHash GetTabuHash() const override;
 
     std::unique_ptr<Move> Clone() const override;
 
@@ -65,7 +67,7 @@ public:
 
     RoutePack Apply(const RoutePack& sol) const override;
 
-    std::string GetTabuHash() const override;
+    TabuHash GetTabuHash() const override;
 
     std::unique_ptr<Move> Clone() const override;
 
@@ -85,7 +87,7 @@ public:
 
     RoutePack Apply(const RoutePack& sol) const override;
 
-    std::string GetTabuHash() const override;
+    TabuHash GetTabuHash() const override;
 
     std::unique_ptr<Move> Clone() const override;
 
@@ -103,7 +105,7 @@ public:
 
     RoutePack Apply(const RoutePack& sol) const override;
 
-    std::string GetTabuHash() const override;
+    TabuHash GetTabuHash() const override;
 
     std::unique_ptr<Move> Clone() const override;
 
@@ -123,7 +125,7 @@ public:
 
     RoutePack Apply(const RoutePack& sol) const override;
 
-    std::string GetTabuHash() const override;
+    TabuHash GetTabuHash() const override;
 
     std::unique_ptr<Move> Clone() const override;
 
@@ -140,7 +142,7 @@ public:
 
     RoutePack Apply(const RoutePack& sol) const override;
 
-    std::string GetTabuHash() const override;
+    TabuHash GetTabuHash() const override;
 
     std::unique_ptr<Move> Clone() const override;
 
@@ -157,7 +159,7 @@ public:
 
     RoutePack Apply(const RoutePack& sol) const override;
 
-    std::string GetTabuHash() const override;
+    TabuHash GetTabuHash() const override;
 
     std::unique_ptr<Move> Clone() const override;
 
@@ -174,7 +176,7 @@ public:
 
     RoutePack Apply(const RoutePack& sol) const override;
 
-    std::string GetTabuHash() const override;
+    TabuHash GetTabuHash() const override;
 
     std::unique_ptr<Move> Clone() const override;
 
@@ -191,7 +193,7 @@ public:
 
     RoutePack Apply(const RoutePack& sol) const override;
 
-    std::string GetTabuHash() const override;
+    TabuHash GetTabuHash() const override;
 
     std::unique_ptr<Move> Clone() const override;
 

@@ -25,7 +25,8 @@ std::vector<std::unique_ptr<Neighborhood>> GlobalNeighborhoods() {
 
 RoutePack VNSTabu::VnsTabuGlobal(const InputData& input_data, double ST [[maybe_unused]], int AON,
                                  int max_iterations_without_improve, int time_limit,
-                                 const RoutePack& initial_solution, quill::Logger* logger) {
+                                 const RoutePack& initial_solution, double alpha,
+                                 quill::Logger* logger) {
     auto start_time = std::chrono::steady_clock::now();
     LOG_DEBUG(logger, "=================================================================");
     LOG_DEBUG(logger, "STARTING INTERROUTE FAIRNESS VNS+TABU ALGORITHM");
@@ -35,13 +36,11 @@ RoutePack VNSTabu::VnsTabuGlobal(const InputData& input_data, double ST [[maybe_
     double best_global_max_cost = best_global.ComputeMaxDistance(input_data);
 
     RoutePack current = best_global;
-    std::deque<std::string> tabu_list_moves;
+    std::deque<TabuHash> tabu_list_moves;
     int iter_no_improve = 0;
 
     auto neighborhoods = GlobalNeighborhoods();
 
-    // TODO: move to the command line arguments
-    double alpha = 0.4;
     auto penalty = [&](const RoutePack& solution) {
         double total_cost = solution.ComputeCost(input_data);
         double stdev = solution.ComputeDistanceStandardDeviation(input_data);
@@ -66,9 +65,8 @@ RoutePack VNSTabu::VnsTabuGlobal(const InputData& input_data, double ST [[maybe_
 
             double max_cost = neighbor.ComputeMaxDistance(input_data);
 
-            std::string hash = move->GetTabuHash();
-            bool in_tabu = (std::find(tabu_list_moves.begin(), tabu_list_moves.end(), hash) !=
-                            tabu_list_moves.end());
+            TabuHash hash = move->GetTabuHash();
+            bool in_tabu = (std::ranges::find(tabu_list_moves, hash) != tabu_list_moves.end());
 
             if (penalty(neighbor) < penalty(best_global) - 1e-9) {
                 LOG_DEBUG(logger, "  *** GLOBAL FAIRNESS IMPROVED! MaxCost: {} -> {} alpha: {}",
