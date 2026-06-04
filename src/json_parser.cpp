@@ -19,7 +19,6 @@ namespace nlohmann {
     inline void to_json(json &j, const AgentSolution &s) {
         j = json{
                 {"route",          s.route},
-                {"solution_size",  s.solution_size},
                 {"total_time",     s.total_time},
                 {"total_distance", s.total_distance},
                 {"total_value",    s.total_value}
@@ -28,7 +27,6 @@ namespace nlohmann {
 
     inline void from_json(const json &j, AgentSolution &s) {
         j.at("route").get_to(s.route);
-        j.at("solution_size").get_to(s.solution_size);
         j.at("total_time").get_to(s.total_time);
         j.at("total_distance").get_to(s.total_distance);
         j.at("total_value").get_to(s.total_value);
@@ -87,7 +85,6 @@ namespace JsonParser {
         for (const auto& s : solutions) {
             nlohmann::json j_obj;
             j_obj["route"] = s.route;
-            j_obj["solution_size"] = s.solution_size;
             j_obj["total_time"] = s.total_time;
             j_obj["total_distance"] = s.total_distance;
             j_obj["total_value"] = s.total_value;
@@ -121,7 +118,6 @@ namespace JsonParser {
         for (const auto& s : solution.agents) {
             nlohmann::json j_obj;
             j_obj["route"] = s.route;
-            j_obj["solution_size"] = s.solution_size;
             j_obj["total_time"] = s.total_time;
             j_obj["total_distance"] = s.total_distance;
             j_obj["total_value"] = s.total_value;

@@ -45,8 +45,6 @@ std::ostream& operator<<(std::ostream& os, const InputData& data);
 struct AgentSolution {
     /// последовательость индексов точек, составляющих найденный маршрут.
     std::vector<uint64_t> route;
-    /// количество точек в решении.
-    uint64_t solution_size{};
     /// ETA на прохождение маршрута (по @time_matrix и @point_service_times).
     uint64_t total_time{};
     ///  суммарное расстояние в маршруте (по @distance_matrix).

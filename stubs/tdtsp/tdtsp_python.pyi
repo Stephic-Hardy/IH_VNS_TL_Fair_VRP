@@ -12,9 +12,6 @@ class AgentSolution:
     def route(self) -> list[int]:
         ...
     @property
-    def solution_size(self) -> int:
-        ...
-    @property
     def total_distance(self) -> int:
         ...
     @property

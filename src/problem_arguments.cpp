@@ -57,7 +57,7 @@ std::ostream &operator<<(std::ostream &os, const InputData &data) {
 }
 
 std::ostream &operator<<(std::ostream &os, const AgentSolution &solution) {
-    os << "solution_size: " << solution.solution_size << "\n";
+    os << "solution_size: " << solution.route.size() << "\n";
 
     os << "route: ";
     for (auto idx : solution.route) {

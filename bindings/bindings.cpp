@@ -42,7 +42,6 @@ PYBIND11_MODULE(tdtsp_python, m) {
     py::class_<AgentSolution>(m, "AgentSolution")
         .def(py::init<>())
         .def_readonly("route", &AgentSolution::route)
-        .def_readonly("solution_size", &AgentSolution::solution_size)
         .def_readonly("total_time", &AgentSolution::total_time)
         .def_readonly("total_distance", &AgentSolution::total_distance)
         .def_readonly("total_value", &AgentSolution::total_value);

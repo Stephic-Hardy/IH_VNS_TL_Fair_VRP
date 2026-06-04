@@ -41,7 +41,6 @@ Solution Solver::Solve(const InputData& input_data) {
         assert(sol.route.back() != 0);
         sol.route.push_back(0);
 
-        sol.solution_size = sol.route.size();
         sol.total_time = tour->ComputeCost(input_data);
         sol.total_distance = tour->ComputeDistance(input_data);
         sol.total_value = tour->ComputeValue(input_data);
