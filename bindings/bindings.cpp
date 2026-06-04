@@ -66,14 +66,14 @@ PYBIND11_MODULE(tdtsp_python, m) {
         .def("solve", &Solver::Solve, py::call_guard<py::gil_scoped_release>(), py::arg("instance"));
 
     py::class_<BaselineSolver, Solver, std::shared_ptr<BaselineSolver>>(m, "BaselineSolver")
-        .def(py::init<double, int, int, int>(),
+        .def(py::init<double, int, int, double>(),
              py::arg("st"),
              py::arg("aon"),
              py::arg("max_iter"),
              py::arg("time_limit"));
 
     py::class_<AnnealingSolver, Solver, std::shared_ptr<AnnealingSolver>>(m, "AnnealingSolver")
-        .def(py::init<double, int, int, int, double>(),
+        .def(py::init<double, int, int, double, double>(),
              py::arg("st"),
              py::arg("aon"),
              py::arg("max_iter"),
@@ -81,7 +81,7 @@ PYBIND11_MODULE(tdtsp_python, m) {
              py::arg("alpha") = 0.5);
 
     py::class_<RebalancingSolver, Solver, std::shared_ptr<RebalancingSolver>>(m, "RebalancingSolver")
-        .def(py::init<double, int, int, int, double>(),
+        .def(py::init<double, int, int, double, double>(),
              py::arg("st"),
              py::arg("aon"),
              py::arg("max_iter"),

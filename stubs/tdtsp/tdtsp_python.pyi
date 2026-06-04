@@ -24,10 +24,10 @@ class AgentSolution:
     def total_value(self) -> int:
         ...
 class AnnealingSolver(Solver):
-    def __init__(self, st: typing.SupportsFloat | typing.SupportsIndex, aon: typing.SupportsInt | typing.SupportsIndex, max_iter: typing.SupportsInt | typing.SupportsIndex, time_limit: typing.SupportsInt | typing.SupportsIndex, alpha: typing.SupportsFloat | typing.SupportsIndex = 0.5) -> None:
+    def __init__(self, st: typing.SupportsFloat | typing.SupportsIndex, aon: typing.SupportsInt | typing.SupportsIndex, max_iter: typing.SupportsInt | typing.SupportsIndex, time_limit: typing.SupportsFloat | typing.SupportsIndex, alpha: typing.SupportsFloat | typing.SupportsIndex = 0.5) -> None:
         ...
 class BaselineSolver(Solver):
-    def __init__(self, st: typing.SupportsFloat | typing.SupportsIndex, aon: typing.SupportsInt | typing.SupportsIndex, max_iter: typing.SupportsInt | typing.SupportsIndex, time_limit: typing.SupportsInt | typing.SupportsIndex) -> None:
+    def __init__(self, st: typing.SupportsFloat | typing.SupportsIndex, aon: typing.SupportsInt | typing.SupportsIndex, max_iter: typing.SupportsInt | typing.SupportsIndex, time_limit: typing.SupportsFloat | typing.SupportsIndex) -> None:
         ...
 class BenchmarkMetadata:
     def __init__(self) -> None:
@@ -51,7 +51,7 @@ class BenchmarkMetadata:
     def st(self) -> float:
         ...
     @property
-    def time_limit(self) -> int:
+    def time_limit(self) -> float:
         ...
 class InputData:
     def __init__(self, points_count: typing.SupportsInt | typing.SupportsIndex, min_load: typing.SupportsInt | typing.SupportsIndex, max_load: typing.SupportsInt | typing.SupportsIndex, max_time: typing.SupportsInt | typing.SupportsIndex, max_distance: typing.SupportsInt | typing.SupportsIndex, distance_matrix: collections.abc.Sequence[collections.abc.Sequence[typing.SupportsInt | typing.SupportsIndex]], time_matrix: collections.abc.Sequence[collections.abc.Sequence[collections.abc.Sequence[typing.SupportsInt | typing.SupportsIndex]]], point_scores: collections.abc.Sequence[typing.SupportsInt | typing.SupportsIndex], point_service_times: collections.abc.Sequence[typing.SupportsInt | typing.SupportsIndex]) -> None:
@@ -113,7 +113,7 @@ class InputData:
     def time_matrix(self, arg0: collections.abc.Sequence[collections.abc.Sequence[collections.abc.Sequence[typing.SupportsInt | typing.SupportsIndex]]]) -> None:
         ...
 class RebalancingSolver(Solver):
-    def __init__(self, st: typing.SupportsFloat | typing.SupportsIndex, aon: typing.SupportsInt | typing.SupportsIndex, max_iter: typing.SupportsInt | typing.SupportsIndex, time_limit: typing.SupportsInt | typing.SupportsIndex, fairness: typing.SupportsFloat | typing.SupportsIndex) -> None:
+    def __init__(self, st: typing.SupportsFloat | typing.SupportsIndex, aon: typing.SupportsInt | typing.SupportsIndex, max_iter: typing.SupportsInt | typing.SupportsIndex, time_limit: typing.SupportsFloat | typing.SupportsIndex, fairness: typing.SupportsFloat | typing.SupportsIndex) -> None:
         ...
 class Solution:
     def __init__(self) -> None:

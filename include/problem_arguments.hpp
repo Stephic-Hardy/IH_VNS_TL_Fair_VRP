@@ -59,7 +59,7 @@ struct BenchmarkMetadata {
     double st;
     int aon;
     int max_iter;
-    int time_limit;
+    double time_limit;
     double execution_time;
 
     // Annealing sepcific

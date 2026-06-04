@@ -55,18 +55,18 @@ Solution Solver::Solve(const InputData& input_data) {
     return Solution{all_agent_solutions, meta};
 }
 
-BaselineSolver::BaselineSolver(double st, int aon, int max_iter, int time_limit, int verbose)
+BaselineSolver::BaselineSolver(double st, int aon, int max_iter, double time_limit, int verbose)
     : Solver(std::make_unique<InsertionHeuristicInitializer>(),
              std::make_unique<BaselineOptimizer>(st, aon, max_iter, time_limit), verbose) {
 }
 
-AnnealingSolver::AnnealingSolver(double st, int aon, int max_iter, int time_limit, double alpha,
+AnnealingSolver::AnnealingSolver(double st, int aon, int max_iter, double time_limit, double alpha,
                                  int verbose)
     : Solver(std::make_unique<InsertionHeuristicInitializer>(),
              std::make_unique<AnnealingOptimizer>(st, aon, max_iter, time_limit, alpha), verbose) {
 }
 
-RebalancingSolver::RebalancingSolver(double st, int aon, int max_iter, int time_limit,
+RebalancingSolver::RebalancingSolver(double st, int aon, int max_iter, double time_limit,
                                      double fairness, int verbose)
     : Solver(std::make_unique<InsertionHeuristicInitializer>(),
              std::make_unique<RebalancingOptimizer>(st, aon, max_iter, time_limit, fairness),

@@ -33,8 +33,8 @@ int main(int argc, char* argv[]) {
         .scan<'i', int>()
         .help("Maximum iterations");
     program.add_argument("--time-limit")
-        .default_value(60)
-        .scan<'i', int>()
+        .default_value(10)
+        .scan<'g', double>()
         .help("Time limit in seconds");
     program.add_argument("--fairness")
         .default_value(0.5)
@@ -66,7 +66,7 @@ int main(int argc, char* argv[]) {
     const double st = program.get<double>("--st");
     const int aon = program.get<int>("--aon");
     const int max_iter = program.get<int>("--max-iter");
-    const int time_limit = program.get<int>("--time-limit");
+    const double time_limit = program.get<double>("--time-limit");
     const std::string input_json = program.get<std::string>("input-json");
     const std::string output_json = program.get<std::string>("output-json");
     const double fairness = std::clamp(program.get<double>("--fairness"), 0.0, 1.0);
