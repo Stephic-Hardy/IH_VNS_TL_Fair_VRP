@@ -1,6 +1,5 @@
 #include "route_pack.h"
 
-#include <numeric>
 #include <cmath>
 
 size_t RoutePack::Size() const {

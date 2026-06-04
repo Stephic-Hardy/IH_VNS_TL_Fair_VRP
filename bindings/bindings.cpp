@@ -1,12 +1,16 @@
 #include <pybind11/pybind11.h>
 #include <pybind11/stl.h>
 
+#include "quill/Backend.h"
+
 #include "solver.h"
 #include "problem_arguments.hpp"
 
 namespace py = pybind11;
 
 PYBIND11_MODULE(tdtsp_python, m) {
+    quill::Backend::start();
+    
     m.doc() = "VNS Fair VRP Solver";
     py::class_<InputData>(m, "InputData")
         .def(py::init<size_t, size_t, size_t, size_t, size_t, 
@@ -59,15 +63,14 @@ PYBIND11_MODULE(tdtsp_python, m) {
         .def_readonly("meta", &Solution::meta);
 
     py::class_<Solver, std::shared_ptr<Solver>>(m, "Solver")
-        .def("solve", &Solver::Solve, py::arg("instance"));
+        .def("solve", &Solver::Solve, py::call_guard<py::gil_scoped_release>(), py::arg("instance"));
 
     py::class_<BaselineSolver, Solver, std::shared_ptr<BaselineSolver>>(m, "BaselineSolver")
         .def(py::init<double, int, int, int>(),
              py::arg("st"),
              py::arg("aon"),
              py::arg("max_iter"),
-             py::arg("time_limit"))
-        .def("solve", &BaselineSolver::Solve, py::arg("instance"));
+             py::arg("time_limit"));
 
     py::class_<AnnealingSolver, Solver, std::shared_ptr<AnnealingSolver>>(m, "AnnealingSolver")
         .def(py::init<double, int, int, int, double>(),
@@ -75,8 +78,7 @@ PYBIND11_MODULE(tdtsp_python, m) {
              py::arg("aon"),
              py::arg("max_iter"),
              py::arg("time_limit"),
-             py::arg("alpha") = 0.5)
-        .def("solve", &AnnealingSolver::Solve, py::arg("instance"));
+             py::arg("alpha") = 0.5);
 
     py::class_<RebalancingSolver, Solver, std::shared_ptr<RebalancingSolver>>(m, "RebalancingSolver")
         .def(py::init<double, int, int, int, double>(),
@@ -84,6 +86,5 @@ PYBIND11_MODULE(tdtsp_python, m) {
              py::arg("aon"),
              py::arg("max_iter"),
              py::arg("time_limit"),
-             py::arg("fairness"))
-        .def("solve", &RebalancingSolver::Solve, py::arg("instance"));
+             py::arg("fairness"));
 }

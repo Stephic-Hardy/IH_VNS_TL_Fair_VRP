@@ -11,8 +11,6 @@ public:
 
     Route(std::vector<int> vertices);
 
-    Route& operator=(const Route& other) = default;
-
     size_t Length() const;
 
     const std::vector<int>& Vertices() const;

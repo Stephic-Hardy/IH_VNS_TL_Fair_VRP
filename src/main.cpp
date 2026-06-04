@@ -3,6 +3,10 @@
 #include <algorithm>
 #include <string>
 #include <argparse/argparse.hpp>
+#include <quill/Backend.h>
+#include <quill/Frontend.h>
+#include <quill/LogMacros.h>
+#include <quill/sinks/ConsoleSink.h>
 
 #include "problem_arguments.hpp"
 #include "solver.h"
@@ -12,7 +16,12 @@
 enum class AlgorithmType { annealing, rebalancing, baseline };
 
 int main(int argc, char* argv[]) {
-    argparse::ArgumentParser program("multi_agent_solver");
+    quill::Backend::start();
+    
+    auto console_sink = quill::Frontend::create_or_get_sink<quill::ConsoleSink>("console_sink");
+    quill::Logger *logger = CreateOrGetLogger("MainLogger");
+    
+    argparse::ArgumentParser program("tdtsp_solver");
 
     program.add_argument("input-json").help("Path to input JSON file");
     program.add_argument("output-json").help("Path to output JSON file");
@@ -31,10 +40,8 @@ int main(int argc, char* argv[]) {
         .default_value(0.5)
         .scan<'g', double>()
         .help("Fairness coefficient (0.0 to 1.0)");
-    program.add_argument("--alpha")
-        .default_value(0.4)
-        .scan<'g', double>()
-        .help("Alpha coefficient in the penalty function of the annealing algorithm");
+    program.add_argument("--alpha").default_value(0.4).scan<'g', double>().help(
+        "Alpha coefficient in the penalty function of the annealing algorithm");
 
     program.add_argument("-a", "--algorithm")
         .default_value(std::string("annealing"))
@@ -79,9 +86,9 @@ int main(int argc, char* argv[]) {
     if (!JsonParser::ParseInputDataFromJson(input_json, input_data)) {
         return 1;
     }
-    
+
     auto start_timer = std::chrono::high_resolution_clock::now();
-    
+
     Solution solution;
     switch (algorithm) {
         case AlgorithmType::baseline:
@@ -98,8 +105,7 @@ int main(int argc, char* argv[]) {
     auto end_timer = std::chrono::high_resolution_clock::now();
     double exec_time_sec = std::chrono::duration<double>(end_timer - start_timer).count();
 
-    std::cout << "\n--- FINAL STATISTICS ---" << std::endl;
-    PrintGiniDistance(solution);
+    PrintGiniDistance(logger, solution);
 
     // Saving found solution
     bool save_success = false;
@@ -107,11 +113,10 @@ int main(int argc, char* argv[]) {
     save_success = JsonParser::WriteBenchmarkToJsonFile(output_json, solution, meta);
 
     if (save_success) {
-        std::cout << "Successfully saved " << solution.agents.size() << " agents to "
-                  << output_json << std::endl;
-        std::cout << "Execution time: " << exec_time_sec << "s" << std::endl;
+        LOG_INFO(logger, "Successfully saved {} agents to {}", solution.agents.size(), output_json);
+        LOG_INFO(logger, "Execution time: {}s", exec_time_sec);
     } else {
-        std::cerr << "Failed to write output JSON." << std::endl;
+        LOG_ERROR(logger, "Failed to write output JSON.");
         return 1;
     }
 

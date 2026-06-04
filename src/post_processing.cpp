@@ -5,10 +5,8 @@
 
 #include <algorithm>
 #include <optional>
-#include <numeric>
 #include <cmath>
 #include <vector>
-#include <iostream>
 
 namespace {
 /**

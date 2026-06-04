@@ -8,12 +8,10 @@
 #include <chrono>
 #include <algorithm>
 #include <deque>
-#include <iostream>
+
+#include <quill/LogMacros.h>
 
 namespace {
-std::deque<std::string> tabu_list_moves;
-std::deque<std::string> tabu_list_2opt;
-
 std::vector<std::unique_ptr<Neighborhood>> Neighborhoods() {
     std::vector<std::unique_ptr<Neighborhood>> neighborhoods;
     neighborhoods.push_back(std::make_unique<RemovePushBackNeighborhood>());
@@ -24,7 +22,7 @@ std::vector<std::unique_ptr<Neighborhood>> Neighborhoods() {
     neighborhoods.push_back(std::make_unique<BlockMoveBackwardNeighborhood>(5));
     return neighborhoods;
 }
-}
+}  // namespace
 
 RoutePack VNSTabu::VnsWithoutTabu(const RoutePack& start_solution, const InputData& input_data,
                                   int max_iter, size_t route) {
@@ -52,10 +50,11 @@ RoutePack VNSTabu::VnsWithoutTabu(const RoutePack& start_solution, const InputDa
 
             // Сравнение: Value -> время -> расстояние
             if (neighbor_value > best_value + 1e-9 ||
-                (std::abs(neighbor_value - best_value) < 1e-9 && neighbor_cost < best_cost - 1e-9)
-                ||
-                (std::abs(neighbor_value - best_value) < 1e-9 && std::abs(neighbor_cost - best_cost)
-                 < 1e-9 && neighbor_distance < best_distance - 1e-9)) {
+                (std::abs(neighbor_value - best_value) < 1e-9 &&
+                 neighbor_cost < best_cost - 1e-9) ||
+                (std::abs(neighbor_value - best_value) < 1e-9 &&
+                 std::abs(neighbor_cost - best_cost) < 1e-9 &&
+                 neighbor_distance < best_distance - 1e-9)) {
                 best = neighbor;
                 best_cost = neighbor_cost;
                 best_value = neighbor_value;
@@ -64,11 +63,11 @@ RoutePack VNSTabu::VnsWithoutTabu(const RoutePack& start_solution, const InputDa
                 improved = true;
                 break;
             } else if (neighbor_value > current_value + 1e-9 ||
-                       (std::abs(neighbor_value - current_value) < 1e-9 && neighbor_cost <
-                        current_cost - 1e-9) ||
                        (std::abs(neighbor_value - current_value) < 1e-9 &&
-                        std::abs(neighbor_cost - current_cost) < 1e-9 && neighbor_distance <
-                        current_distance - 1e-9)) {
+                        neighbor_cost < current_cost - 1e-9) ||
+                       (std::abs(neighbor_value - current_value) < 1e-9 &&
+                        std::abs(neighbor_cost - current_cost) < 1e-9 &&
+                        neighbor_distance < current_distance - 1e-9)) {
                 current = neighbor;
                 improved = true;
                 break;
@@ -82,22 +81,18 @@ RoutePack VNSTabu::VnsWithoutTabu(const RoutePack& start_solution, const InputDa
     return best;
 }
 
-RoutePack VNSTabu::VnsTabuAdvanced(const InputData& input_data,
-                                   double ST,
-                                   int AON,
-                                   int max_iterations_without_improve,
-                                   int time_limit,
-                                   const RoutePack& initial_solution,
-                                   size_t route) {
+RoutePack VNSTabu::VnsTabuAdvanced(const InputData& input_data, double ST, int AON,
+                                   int max_iterations_without_improve, int time_limit,
+                                   const RoutePack& initial_solution, size_t route,
+                                   quill::Logger* logger) {
 
     auto start_time = std::chrono::steady_clock::now();
 
-    std::cout << "=================================================================" << std::endl;
-    std::cout << "STARTING ADVANCED VNS+TABU ALGORITHM" << std::endl;
-    std::cout << "Parameters: ST=" << ST << ", AON=" << AON
-        << ", MaxIterWithoutImprove=" << max_iterations_without_improve
-        << ", TimeLimit=" << time_limit << "s" << std::endl;
-    std::cout << "=================================================================" << std::endl;
+    LOG_DEBUG(logger, "=================================================================");
+    LOG_DEBUG(logger, "STARTING ADVANCED VNS+TABU ALGORITHM");
+    LOG_DEBUG(logger, "Parameters: ST={}, AON={}, MaxIterWithoutImprove={}, TimeLimit={}s", ST, AON,
+              max_iterations_without_improve, time_limit);
+    LOG_DEBUG(logger, "=================================================================");
 
     std::vector<int> agent_subset;
     for (int v : initial_solution.GetRoute(route).Vertices()) {
@@ -112,7 +107,9 @@ RoutePack VNSTabu::VnsTabuAdvanced(const InputData& input_data,
     double best_global_distance = best_global.GetRoute(route).ComputeDistance(input_data);
     RoutePack current = best_global;
 
-    tabu_list_moves.clear();
+    
+    std::deque<std::string> tabu_list_moves;
+    std::deque<std::string> tabu_list_2opt;
 
     std::vector<RoutePack> LT;
     int iterations_without_global_improve = 0;
@@ -124,16 +121,16 @@ RoutePack VNSTabu::VnsTabuAdvanced(const InputData& input_data,
     while (true) {
         total_iterations++;
         auto current_time = std::chrono::steady_clock::now();
-        auto elapsed = std::chrono::duration_cast<std::chrono::seconds>(current_time - start_time).
-            count();
+        auto elapsed =
+            std::chrono::duration_cast<std::chrono::seconds>(current_time - start_time).count();
 
         if (elapsed >= time_limit) {
-            std::cout << "TIME LIMIT REACHED! Stopping." << std::endl;
+            LOG_DEBUG(logger, "TIME LIMIT REACHED! Stopping.");
             break;
         }
 
         if (iterations_without_global_improve >= max_iterations_without_improve) {
-            std::cout << "MAX ITERATIONS WITHOUT GLOBAL IMPROVE REACHED! Stopping." << std::endl;
+            LOG_DEBUG(logger, "MAX ITERATIONS WITHOUT GLOBAL IMPROVE REACHED! Stopping.");
             break;
         }
 
@@ -160,21 +157,21 @@ RoutePack VNSTabu::VnsTabuAdvanced(const InputData& input_data,
 
             // Новый порядок оптимизации: Value -> время -> расстояние
             if (neighbor_value > best_global_value + 1e-9 ||
-                (std::abs(neighbor_value - best_global_value) < 1e-9 && neighbor_cost <
-                 best_global_cost - 1e-9) ||
                 (std::abs(neighbor_value - best_global_value) < 1e-9 &&
-                 std::abs(neighbor_cost - best_global_cost) < 1e-9 && neighbor_distance <
-                 best_global_distance - 1e-9)) {
+                 neighbor_cost < best_global_cost - 1e-9) ||
+                (std::abs(neighbor_value - best_global_value) < 1e-9 &&
+                 std::abs(neighbor_cost - best_global_cost) < 1e-9 &&
+                 neighbor_distance < best_global_distance - 1e-9)) {
 
-                if (neighbor_distance <= input_data.max_distance && neighbor_cost <= input_data.
-                    max_time) {
-                    std::cout << "  *** GLOBAL IMPROVEMENT FOUND! ***" << std::endl;
-                    std::cout << "  Old value: " << best_global_value << " -> New value: " <<
-                        neighbor_value << std::endl;
-                    std::cout << "  Old time: " << best_global_cost << " -> New time: " <<
-                        neighbor_cost << std::endl;
-                    std::cout << "  Distance: " << neighbor_distance << " (within limit " <<
-                        input_data.max_distance << ")" << std::endl;
+                if (neighbor_distance <= input_data.max_distance &&
+                    neighbor_cost <= input_data.max_time) {
+                    LOG_DEBUG(logger, "  *** GLOBAL IMPROVEMENT FOUND! ***");
+                    LOG_DEBUG(logger, "  Old value: {} -> New value: {}", best_global_value,
+                              neighbor_value);
+                    LOG_DEBUG(logger, "  Old time: {} -> New time: {}", best_global_cost,
+                              neighbor_cost);
+                    LOG_DEBUG(logger, "  Distance: {} (within limit {})", neighbor_distance,
+                              input_data.max_distance);
 
                     best_global = neighbor;
                     best_global_cost = neighbor_cost;
@@ -189,14 +186,12 @@ RoutePack VNSTabu::VnsTabuAdvanced(const InputData& input_data,
                     iterations_without_global_improve = 0;
                     break;
                 } else {
-                    std::cout << "  *** VALUE/TIME IMPROVED BUT CONSTRAINTS VIOLATED! ***" <<
-                        std::endl;
-                    std::cout << "  Improved value: " << neighbor_value << " -> " <<
-                        best_global_value << std::endl;
-                    std::cout << "  Distance: " << neighbor_distance << " > limit " << input_data.
-                        max_distance
-                        << " or Time: " << neighbor_cost << " > limit " << input_data.max_time <<
-                        std::endl;
+                    LOG_DEBUG(logger, "  *** VALUE/TIME IMPROVED BUT CONSTRAINTS VIOLATED! ***");
+                    LOG_DEBUG(logger, "  Improved value: {} -> {}", neighbor_value,
+                              best_global_value);
+                    LOG_DEBUG(logger, "  Distance: {} > limit {} or Time: {} > limit {}",
+                              neighbor_distance, input_data.max_distance, neighbor_cost,
+                              input_data.max_time);
                     continue;
                 }
             } else if (!in_tabu) {
@@ -206,37 +201,36 @@ RoutePack VNSTabu::VnsTabuAdvanced(const InputData& input_data,
 
                 // Новый порядок оптимизации: Value -> время -> расстояние
                 if ((neighbor_value > current_value + 1e-9 ||
-                     (std::abs(neighbor_value - current_value) < 1e-9 && neighbor_cost <
-                      current_cost - 1e-9) ||
                      (std::abs(neighbor_value - current_value) < 1e-9 &&
-                      std::abs(neighbor_cost - current_cost) < 1e-9 && neighbor_distance <
-                      current_distance - 1e-9)) &&
-                    neighbor_distance <= input_data.max_distance && neighbor_cost <= input_data.
-                    max_time) {
+                      neighbor_cost < current_cost - 1e-9) ||
+                     (std::abs(neighbor_value - current_value) < 1e-9 &&
+                      std::abs(neighbor_cost - current_cost) < 1e-9 &&
+                      neighbor_distance < current_distance - 1e-9)) &&
+                    neighbor_distance <= input_data.max_distance &&
+                    neighbor_cost <= input_data.max_time) {
 
                     current = neighbor;
                     improved_in_neighborhood = true;
 
                     auto move_type = move->Type();
-                    if (move_type == N1_REMOVE_INSERT || move_type == N2_SWAP_ADJ || move_type ==
-                        N3_SWAP) {
+                    if (move_type == N1_REMOVE_INSERT || move_type == N2_SWAP_ADJ ||
+                        move_type == N3_SWAP) {
                         tabu_list_moves.push_back(move_hash);
                     } else if (move_type == N4_2OPT) {
                         tabu_list_2opt.push_back(move_hash);
                     }
                     break;
                 } else if (neighbor_value > current_value + 1e-9 ||
-                           (std::abs(neighbor_value - current_value) < 1e-9 && neighbor_cost <
-                            current_cost - 1e-9) ||
                            (std::abs(neighbor_value - current_value) < 1e-9 &&
-                            std::abs(neighbor_cost - current_cost) < 1e-9 && neighbor_distance <
-                            current_distance - 1e-9)) {
-                    std::cout << "  *** LOCAL IMPROVEMENT REJECTED - CONSTRAINTS VIOLATED ***" <<
-                        std::endl;
-                    std::cout << "  Distance: " << neighbor_distance << " > limit " << input_data.
-                        max_distance
-                        << " or Time: " << neighbor_cost << " > limit " << input_data.max_time <<
-                        std::endl;
+                            neighbor_cost < current_cost - 1e-9) ||
+                           (std::abs(neighbor_value - current_value) < 1e-9 &&
+                            std::abs(neighbor_cost - current_cost) < 1e-9 &&
+                            neighbor_distance < current_distance - 1e-9)) {
+                    LOG_DEBUG(logger,
+                              "  *** LOCAL IMPROVEMENT REJECTED - CONSTRAINTS VIOLATED ***");
+                    LOG_DEBUG(logger, "  Distance: {} > limit {} or Time: {} > limit {}",
+                              neighbor_distance, input_data.max_distance, neighbor_cost,
+                              input_data.max_time);
                     continue;
                 }
             }
@@ -250,8 +244,8 @@ RoutePack VNSTabu::VnsTabuAdvanced(const InputData& input_data,
             if (current_value >= threshold_value) {
                 LT.push_back(current);
             }
-            current.MutateRoute(route) = InsertionHeuristic::BuildInitialTour(
-                agent_subset, input_data);
+            current.MutateRoute(route) =
+                InsertionHeuristic::BuildInitialTour(agent_subset, input_data);
         }
 
         if (LT.size() >= static_cast<size_t>(AON)) {
@@ -266,34 +260,32 @@ RoutePack VNSTabu::VnsTabuAdvanced(const InputData& input_data,
 
                 // Новый порядок оптимизации: Value -> время -> расстояние
                 if ((improved_value > best_global_value + 1e-9 ||
-                     (std::abs(improved_value - best_global_value) < 1e-9 && improved_cost <
-                      best_global_cost - 1e-9) ||
                      (std::abs(improved_value - best_global_value) < 1e-9 &&
-                      std::abs(improved_cost - best_global_cost) < 1e-9 && improved_distance <
-                      best_global_distance - 1e-9)) &&
-                    improved_distance <= input_data.max_distance && improved_cost <= input_data.
-                    max_time) {
+                      improved_cost < best_global_cost - 1e-9) ||
+                     (std::abs(improved_value - best_global_value) < 1e-9 &&
+                      std::abs(improved_cost - best_global_cost) < 1e-9 &&
+                      improved_distance < best_global_distance - 1e-9)) &&
+                    improved_distance <= input_data.max_distance &&
+                    improved_cost <= input_data.max_time) {
 
                     best_global = improved;
                     best_global_cost = improved_cost;
                     best_global_value = improved_value;
                     best_global_distance = improved_distance;
                     global_improved_in_iteration = true;
-                    std::cout << "  *** VNS IMPROVED GLOBAL BEST! New value: " << best_global_value
-                        << " ***" << std::endl;
+                    LOG_DEBUG(logger, "  *** VNS IMPROVED GLOBAL BEST! New value: {} ***",
+                              best_global_value);
                 } else if (improved_value > best_global_value + 1e-9 ||
-                           (std::abs(improved_value - best_global_value) < 1e-9 && improved_cost <
-                            best_global_cost - 1e-9) ||
                            (std::abs(improved_value - best_global_value) < 1e-9 &&
-                            std::abs(improved_cost - best_global_cost) < 1e-9 && improved_distance <
-                            best_global_distance - 1e-9)) {
-                    std::cout << "  *** VNS IMPROVEMENT REJECTED - CONSTRAINTS VIOLATED ***" <<
-                        std::endl;
-                    std::cout << "  Improved value: " << improved_value << " Distance: " <<
-                        improved_distance
-                        << " > limit " << input_data.max_distance
-                        << " or Time: " << improved_cost << " > limit " << input_data.max_time <<
-                        std::endl;
+                            improved_cost < best_global_cost - 1e-9) ||
+                           (std::abs(improved_value - best_global_value) < 1e-9 &&
+                            std::abs(improved_cost - best_global_cost) < 1e-9 &&
+                            improved_distance < best_global_distance - 1e-9)) {
+                    LOG_DEBUG(logger, "  *** VNS IMPROVEMENT REJECTED - CONSTRAINTS VIOLATED ***");
+                    LOG_DEBUG(logger,
+                              "  Improved value: {} Distance: {} > limit {} or Time: {} > limit {}",
+                              improved_value, improved_distance, input_data.max_distance,
+                              improved_cost, input_data.max_time);
                 }
             }
 
@@ -306,20 +298,20 @@ RoutePack VNSTabu::VnsTabuAdvanced(const InputData& input_data,
                 std::uniform_int_distribution<size_t> dist(0, LT_VNS.size() - 1);
                 current = LT_VNS[dist(gen)];
             }
-            
+
             LT.clear();
-            current.MutateRoute(route) = InsertionHeuristic::BuildInitialTour(
-                agent_subset, input_data);
+            current.MutateRoute(route) =
+                InsertionHeuristic::BuildInitialTour(agent_subset, input_data);
             double new_cost = current.GetRoute(route).ComputeCost(input_data);
             double new_value = current.GetRoute(route).ComputeValue(input_data);
             double new_distance = current.GetRoute(route).ComputeDistance(input_data);
 
             if ((new_value > best_global_value + 1e-9 ||
-                 (std::abs(new_value - best_global_value) < 1e-9 && new_cost < best_global_cost -
-                  1e-9) ||
                  (std::abs(new_value - best_global_value) < 1e-9 &&
-                  std::abs(new_cost - best_global_cost) < 1e-9 && new_distance <
-                  best_global_distance - 1e-9)) &&
+                  new_cost < best_global_cost - 1e-9) ||
+                 (std::abs(new_value - best_global_value) < 1e-9 &&
+                  std::abs(new_cost - best_global_cost) < 1e-9 &&
+                  new_distance < best_global_distance - 1e-9)) &&
                 new_distance <= input_data.max_distance && new_cost <= input_data.max_time) {
 
                 best_global = current;
@@ -328,16 +320,17 @@ RoutePack VNSTabu::VnsTabuAdvanced(const InputData& input_data,
                 best_global_distance = new_distance;
                 global_improved_in_iteration = true;
             } else if (new_value > best_global_value + 1e-9 ||
-                       (std::abs(new_value - best_global_value) < 1e-9 && new_cost <
-                        best_global_cost - 1e-9) ||
                        (std::abs(new_value - best_global_value) < 1e-9 &&
-                        std::abs(new_cost - best_global_cost) < 1e-9 && new_distance <
-                        best_global_distance - 1e-9)) {
-                std::cout << "  *** INITIAL TOUR IMPROVEMENT REJECTED - CONSTRAINTS VIOLATED ***" <<
-                    std::endl;
-                std::cout << "  Improved value: " << new_value << " Distance: " << new_distance
-                    << " > limit " << input_data.max_distance
-                    << " or Time: " << new_cost << " > limit " << input_data.max_time << std::endl;
+                        new_cost < best_global_cost - 1e-9) ||
+                       (std::abs(new_value - best_global_value) < 1e-9 &&
+                        std::abs(new_cost - best_global_cost) < 1e-9 &&
+                        new_distance < best_global_distance - 1e-9)) {
+                LOG_DEBUG(logger,
+                          "  *** INITIAL TOUR IMPROVEMENT REJECTED - CONSTRAINTS VIOLATED ***");
+                LOG_DEBUG(logger,
+                          "  Improved value: {} Distance: {} > limit {} or Time: {} > limit {}",
+                          new_value, new_distance, input_data.max_distance, new_cost,
+                          input_data.max_time);
             }
 
             if (global_improved_in_iteration) {
@@ -361,16 +354,16 @@ RoutePack VNSTabu::VnsTabuAdvanced(const InputData& input_data,
     }
 
     auto end_time = std::chrono::steady_clock::now();
-    auto total_elapsed = std::chrono::duration_cast<std::chrono::seconds>(end_time - start_time).
-        count();
+    auto total_elapsed =
+        std::chrono::duration_cast<std::chrono::seconds>(end_time - start_time).count();
 
-    std::cout << "\n=================================================================" << std::endl;
-    std::cout << "ALGORITHM FINISHED" << std::endl;
-    std::cout << "Total iterations: " << total_iterations << std::endl;
-    std::cout << "Total time: " << total_elapsed << "s" << std::endl;
-    std::cout << "Final best value: " << best_global_value << std::endl;
-    std::cout << "Final best cost: " << best_global_cost << std::endl;
-    std::cout << "Total distance: " << best_global_distance << std::endl;
-    std::cout << "=================================================================" << std::endl;
+    LOG_DEBUG(logger, "\n=================================================================");
+    LOG_DEBUG(logger, "ALGORITHM FINISHED");
+    LOG_DEBUG(logger, "Total iterations: {}", total_iterations);
+    LOG_DEBUG(logger, "Total time: {}s", total_elapsed);
+    LOG_DEBUG(logger, "Final best value: {}", best_global_value);
+    LOG_DEBUG(logger, "Final best cost: {}", best_global_cost);
+    LOG_DEBUG(logger, "Total distance: {}", best_global_distance);
+    LOG_DEBUG(logger, "=================================================================");
     return best_global;
 }

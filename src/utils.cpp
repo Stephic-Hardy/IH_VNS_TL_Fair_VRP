@@ -1,20 +1,56 @@
 #include "utils.h"
 #include "problem_arguments.hpp"
+#include "quill/Logger.h"
 
-#include <iomanip>
-#include <iostream>
 #include <algorithm>
 #include <numeric>
 
-void PrintGiniDistance(const Solution &solution) {
+#include <quill/Backend.h>
+#include <quill/Frontend.h>
+#include <quill/LogMacros.h>
+#include <quill/sinks/ConsoleSink.h>
+
+quill::Logger *CreateOrGetLogger(std::string name, int verbose) {
+    auto console_sink = quill::Frontend::create_or_get_sink<quill::ConsoleSink>("console_sink");
+
+    quill::Logger *logger;
+    if (verbose != 3) {
+        quill::PatternFormatterOptions format_options;
+        format_options.format_pattern =
+            "[%(log_level)] %(message)";
+        logger = quill::Frontend::create_or_get_logger(name, std::move(console_sink), format_options);
+    } else {
+        logger = quill::Frontend::create_or_get_logger(name, std::move(console_sink));
+    }
+    switch (verbose) {
+        case 0:
+            logger->set_log_level(quill::LogLevel::Error);
+            break;
+        case 1:
+            logger->set_log_level(quill::LogLevel::Warning);
+            break;
+        case 2:
+            logger->set_log_level(quill::LogLevel::Info);
+            break;
+        case 3:
+            logger->set_log_level(quill::LogLevel::Debug);
+            break;
+        default:
+            logger->set_log_level(quill::LogLevel::Info);
+            LOG_WARNING(logger, "Invalid verbose level was specified: {}, defaulted to 2", verbose);
+    }
+    return logger;
+}
+
+void PrintGiniDistance(quill::Logger *logger, const Solution &solution) {
     if (solution.agents.empty()) {
-        std::cout << "\nНет данных для анализа." << std::endl;
+        LOG_INFO(logger, "Нет данных для анализа.");
         return;
     }
 
     size_t n = solution.agents.size();
     std::vector<double> distances;
-    for (const auto& sol : solution.agents) {
+    for (const auto &sol : solution.agents) {
         distances.push_back(static_cast<double>(sol.total_distance));
     }
 
@@ -23,7 +59,7 @@ void PrintGiniDistance(const Solution &solution) {
     double sum = std::accumulate(distances.begin(), distances.end(), 0.0);
 
     if (sum == 0) {
-        std::cout << "\nНулевая дистанция, расчет невозможен." << std::endl;
+        LOG_INFO(logger, "Нулевая дистанция, расчет невозможен.");
         return;
     }
 
@@ -37,10 +73,9 @@ void PrintGiniDistance(const Solution &solution) {
     double min_dist = std::ranges::min(distances);
     double max_dist = std::ranges::max(distances);
 
-    std::cout << "Средняя дистанция:   " << std::fixed << std::setprecision(2) << sum / n
-              << std::endl;
-    std::cout << "Коэффициент Джини:   " << std::setprecision(4) << gini << std::endl;
-    std::cout << "(Max - Min):   " << std::setprecision(4) << max_dist - min_dist << std::endl;
-    std::cout << "(Max - Min) / Min:   " << std::setprecision(4) << (max_dist - min_dist) / min_dist
-              << std::endl;
+    LOG_INFO(logger, "--- FINAL STATISTICS ---");
+    LOG_INFO(logger, "Средняя дистанция:   {:.2f}", sum / n);
+    LOG_INFO(logger, "Коэффициент Джини:   {:.4f}", gini);
+    LOG_INFO(logger, "(Max - Min):         {:.4f}", max_dist - min_dist);
+    LOG_INFO(logger, "(Max - Min) / Min:   {:.4f}", (max_dist - min_dist) / min_dist);
 }

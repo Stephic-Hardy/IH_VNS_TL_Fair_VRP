@@ -2,11 +2,17 @@
 
 #include "route_pack.h"
 
+#include <quill/Logger.h>
+
 class Optimizer {
 public:
     virtual ~Optimizer() = default;
     virtual void EnrichMeta(BenchmarkMetadata& meta) = 0;
     virtual RoutePack Optimize(RoutePack&, const InputData&) = 0;
+    void SetLogger(quill::Logger*);
+
+protected:
+    quill::Logger* logger_ = nullptr;
 };
 
 class BaselineOptimizer : public Optimizer {

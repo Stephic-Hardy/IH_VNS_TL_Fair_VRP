@@ -1,4 +1,5 @@
 #include "insertion_heuristic.h"
+
 #include <random>
 #include <chrono>
 #include <unordered_set>

@@ -10,8 +10,6 @@ struct ProgramArguments {
     uint64_t time;
 };
 
-bool ParseProgramArguments(int argc, char* argv[], ProgramArguments& args);
-
 struct InputData {
     /// количество точек в задаче, включая склад.
     uint64_t points_count{};
