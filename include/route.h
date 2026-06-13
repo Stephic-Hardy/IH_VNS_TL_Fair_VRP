@@ -25,8 +25,12 @@ public:
     double ComputeCost(const InputData& input) const;
 
     double ComputeValue(const InputData& input) const;
+    
+    static double ComputeDistance(const std::vector<int>& vertices, const InputData& input);
 
-    std::ostream& operator<<(std::ostream&) const;
+    static double ComputeCost(const std::vector<int>& vertices, const InputData& input);
+
+    static double ComputeValue(const std::vector<int>& vertices, const InputData& input);
 
     bool operator==(const Route& tour) const;
 

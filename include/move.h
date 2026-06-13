@@ -1,9 +1,10 @@
 #pragma once
-#include <string>
+#include <vector>
 
 #include "route_pack.h"
+#include "solution_metrics.h"
 
-enum MoveTypes {
+enum MoveType {
     N1_REMOVE_INSERT,
     N2_SWAP_ADJ,
     N3_SWAP,
@@ -21,15 +22,19 @@ using TabuHash = uint64_t;
 
 class Move : std::enable_shared_from_this<Move> {
 public:
-    Move(MoveTypes type, int route_idx = 0);
+    Move(MoveType type, int route_idx = 0);
 
     virtual ~Move() = default;
 
     virtual RoutePack Apply(const RoutePack& sol) const = 0;
 
+    virtual SolutionMetrics EvaluateDelta(const RoutePack& sol, const InputData& input,
+                                          std::vector<int>& buffer1,
+                                          std::vector<int>& buffer2) const = 0;
+
     virtual TabuHash GetTabuHash() const = 0;
 
-    MoveTypes Type() const;
+    MoveType Type() const;
 
     virtual std::unique_ptr<Move> Clone() const = 0;
 
@@ -37,7 +42,7 @@ public:
 
 protected:
     int route_idx_;
-    MoveTypes type_;
+    MoveType type_;
 };
 
 /**
@@ -48,6 +53,9 @@ public:
     RemoveInsertMove(int r, size_t remove_pos, size_t insert_pos);
 
     RoutePack Apply(const RoutePack& sol) const override;
+
+    SolutionMetrics EvaluateDelta(const RoutePack& sol, const InputData& input,
+                                  std::vector<int>& buffer, std::vector<int>&) const override;
 
     TabuHash GetTabuHash() const override;
 
@@ -67,12 +75,15 @@ public:
 
     RoutePack Apply(const RoutePack& sol) const override;
 
+    SolutionMetrics EvaluateDelta(const RoutePack& sol, const InputData& input,
+                                  std::vector<int>& buffer, std::vector<int>&) const override;
+
     TabuHash GetTabuHash() const override;
 
     std::unique_ptr<Move> Clone() const override;
 
 private:
-    static MoveTypes DetermineType(size_t pos1, size_t pos2);
+    static MoveType DetermineType(size_t pos1, size_t pos2);
 
     int route_idx_;
     size_t pos1_, pos2_;
@@ -86,6 +97,9 @@ public:
     TwoOptMove(int r, size_t start, size_t end);
 
     RoutePack Apply(const RoutePack& sol) const override;
+
+    SolutionMetrics EvaluateDelta(const RoutePack& sol, const InputData& input,
+                                  std::vector<int>& buffer, std::vector<int>&) const override;
 
     TabuHash GetTabuHash() const override;
 
@@ -105,12 +119,15 @@ public:
 
     RoutePack Apply(const RoutePack& sol) const override;
 
+    SolutionMetrics EvaluateDelta(const RoutePack& sol, const InputData& input,
+                                  std::vector<int>& buffer, std::vector<int>&) const override;
+
     TabuHash GetTabuHash() const override;
 
     std::unique_ptr<Move> Clone() const override;
 
 private:
-    static MoveTypes DetermineType(size_t start, size_t insert);
+    static MoveType DetermineType(size_t start, size_t insert);
 
     int route_idx_;
     size_t start_pos_, length_, insert_pos_;
@@ -125,22 +142,27 @@ public:
 
     RoutePack Apply(const RoutePack& sol) const override;
 
+    SolutionMetrics EvaluateDelta(const RoutePack& sol, const InputData& input,
+                                  std::vector<int>& buffer, std::vector<int>&) const override;
+
     TabuHash GetTabuHash() const override;
 
     std::unique_ptr<Move> Clone() const override;
 
-private :
+private:
     int route_idx_;
     size_t start_pos_;
     std::vector<int> new_order_;
 };
-
 
 class InterRelocateMove : public Move {
 public:
     InterRelocateMove(int f_r, int t_r, size_t f_p, size_t t_p);
 
     RoutePack Apply(const RoutePack& sol) const override;
+
+    SolutionMetrics EvaluateDelta(const RoutePack& sol, const InputData& input,
+                                  std::vector<int>& buffer, std::vector<int>&) const override;
 
     TabuHash GetTabuHash() const override;
 
@@ -159,6 +181,10 @@ public:
 
     RoutePack Apply(const RoutePack& sol) const override;
 
+    SolutionMetrics EvaluateDelta(const RoutePack& sol, const InputData& input,
+                                  std::vector<int>& buffer1,
+                                  std::vector<int>& buffer2) const override;
+
     TabuHash GetTabuHash() const override;
 
     std::unique_ptr<Move> Clone() const override;
@@ -176,6 +202,10 @@ public:
 
     RoutePack Apply(const RoutePack& sol) const override;
 
+    SolutionMetrics EvaluateDelta(const RoutePack& sol, const InputData& input,
+                                  std::vector<int>& buffer1,
+                                  std::vector<int>& buffer2) const override;
+
     TabuHash GetTabuHash() const override;
 
     std::unique_ptr<Move> Clone() const override;
@@ -192,6 +222,10 @@ public:
     TwoOptStarMove(int r1, int r2, size_t edge1_idx, size_t edge2_idx);
 
     RoutePack Apply(const RoutePack& sol) const override;
+
+    SolutionMetrics EvaluateDelta(const RoutePack& sol, const InputData& input,
+                                  std::vector<int>& buffer1,
+                                  std::vector<int>& buffer2) const override;
 
     TabuHash GetTabuHash() const override;
 

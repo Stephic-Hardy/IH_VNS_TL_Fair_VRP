@@ -22,4 +22,12 @@ struct SolutionMetrics {
 
         return distance < other.distance - kEps;
     }
+
+    SolutionMetrics operator+(const SolutionMetrics& other) const {
+        return {value + other.value, cost + other.cost, distance + other.distance};
+    }
+
+    SolutionMetrics operator-(const SolutionMetrics& other) const {
+        return {value - other.value, cost - other.cost, distance - other.distance};
+    }
 };

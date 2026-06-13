@@ -1,7 +1,9 @@
 #include "neighborhood.h"
+#include "solution_metrics.h"
 
 #include <algorithm>
 #include <functional>
+#include <vector>
 
 namespace {
 constexpr double kEps = 1e-9;
@@ -12,28 +14,29 @@ std::pair<RoutePack, std::unique_ptr<Move>> Neighborhood::FindBestNeighbor(
     RoutePack best_neighbor = sol;
     std::unique_ptr<Move> best_move = nullptr;
 
-    double min_cost = best_neighbor.ComputeCost(input_data);
-    double best_value = best_neighbor.ComputeValue(input_data);
-    double best_distance = best_neighbor.ComputeDistance(input_data);
+    SolutionMetrics base_metrics = {sol.ComputeValue(input_data), sol.ComputeCost(input_data),
+                                    sol.ComputeDistance(input_data)};
 
-    std::function eval = [&](const Move& move) {
-        RoutePack neighbor = move.Apply(sol);
-        double cost = neighbor.ComputeCost(input_data);
-        double value = neighbor.ComputeValue(input_data);
-        double distance = neighbor.ComputeDistance(input_data);
-        if (value > best_value + kEps ||
-            (std::abs(value - best_value) < kEps && cost < min_cost - kEps) ||
-            (std::abs(value - best_value) < kEps && std::abs(cost - min_cost) < kEps && distance
-             < best_distance - kEps)) {
-            min_cost = cost;
-            best_value = value;
-            best_distance = distance;
-            best_neighbor = neighbor;
+    SolutionMetrics best_metrics = base_metrics;
+
+    std::vector<int> buffer1, buffer2;
+    buffer1.reserve(input_data.points_count + 2);
+    buffer2.reserve(input_data.points_count + 2);
+
+    auto eval = [&](const Move& move) {
+        SolutionMetrics neighbor_metrics =
+            base_metrics + move.EvaluateDelta(sol, input_data, buffer1, buffer2);
+
+        if (neighbor_metrics > best_metrics) {
+            best_metrics = neighbor_metrics;
             best_move = move.Clone();
         }
     };
 
     VisitEachMove(sol, route, eval);
+    if (best_move) {
+        best_neighbor = best_move->Apply(sol);
+    }
 
     return {std::move(best_neighbor), std::move(best_move)};
 }
@@ -62,7 +65,6 @@ std::pair<RoutePack, std::unique_ptr<Move>> Neighborhood::FindBestNeighbor(
 
 void Neighborhood::VisitEachMove(const RoutePack& sol,
                                  std::function<void(const Move&)> evaluate) const {
-    std::vector<std::unique_ptr<Move>> moves;
     for (size_t route = 0; route < sol.Size(); ++route) {
         VisitEachMove(sol, route, evaluate);
     }
@@ -70,7 +72,6 @@ void Neighborhood::VisitEachMove(const RoutePack& sol,
 
 void RemovePushBackNeighborhood::VisitEachMove(const RoutePack& sol, size_t route,
                                                std::function<void(const Move&)> evaluator) const {
-    std::vector<std::unique_ptr<Move>> moves;
     size_t n = sol.GetRoute(route).Length();
     for (size_t from = 1; from < n - 1; ++from) {
         RemoveInsertMove move(route, from, n - 1);
@@ -80,7 +81,6 @@ void RemovePushBackNeighborhood::VisitEachMove(const RoutePack& sol, size_t rout
 
 void MoveVertexNeighborhood::VisitEachMove(const RoutePack& sol, size_t route,
                                            std::function<void(const Move&)> evaluator) const {
-    std::vector<std::unique_ptr<Move>> moves;
     size_t n = sol.GetRoute(route).Length();
     for (size_t from = 1; from < n - 1; ++from) {
         for (size_t to = 1; to < n - 1; ++to) {
@@ -102,9 +102,8 @@ void SwapAdjNeighborhood::VisitEachMove(const RoutePack& sol, size_t route,
     }
 }
 
-void
-SwapNeighborhood::VisitEachMove(const RoutePack& sol, size_t route,
-                                std::function<void(const Move&)> evaluator) const {
+void SwapNeighborhood::VisitEachMove(const RoutePack& sol, size_t route,
+                                     std::function<void(const Move&)> evaluator) const {
     size_t n = sol.GetRoute(route).Length();
     for (size_t i = 1; i < n; ++i) {
         for (size_t j = i + 1; j < n; ++j) {
@@ -114,9 +113,8 @@ SwapNeighborhood::VisitEachMove(const RoutePack& sol, size_t route,
     }
 }
 
-void
-TwoOptNeighborhood::VisitEachMove(const RoutePack& sol, size_t route,
-                                  std::function<void(const Move&)> evaluator) const {
+void TwoOptNeighborhood::VisitEachMove(const RoutePack& sol, size_t route,
+                                       std::function<void(const Move&)> evaluator) const {
     size_t n = sol.GetRoute(route).Length();
     if (n < 4) {
         return;
@@ -132,9 +130,8 @@ TwoOptNeighborhood::VisitEachMove(const RoutePack& sol, size_t route,
 BlockMoveForwardNeighborhood::BlockMoveForwardNeighborhood(size_t block_size) : k_(block_size) {
 }
 
-void
-BlockMoveForwardNeighborhood::VisitEachMove(const RoutePack& sol, size_t route,
-                                            std::function<void(const Move&)> evaluator) const {
+void BlockMoveForwardNeighborhood::VisitEachMove(const RoutePack& sol, size_t route,
+                                                 std::function<void(const Move&)> evaluator) const {
     size_t n = sol.GetRoute(route).Length();
     if (n <= k_) {
         return;
@@ -148,9 +145,8 @@ BlockMoveForwardNeighborhood::VisitEachMove(const RoutePack& sol, size_t route,
 BlockMoveBackwardNeighborhood::BlockMoveBackwardNeighborhood(size_t block_size) : k_(block_size) {
 }
 
-void
-BlockMoveBackwardNeighborhood::VisitEachMove(const RoutePack& sol, size_t route,
-                                             std::function<void(const Move&)> evaluator) const {
+void BlockMoveBackwardNeighborhood::VisitEachMove(
+    const RoutePack& sol, size_t route, std::function<void(const Move&)> evaluator) const {
     size_t n = sol.GetRoute(route).Length();
     if (n <= k_) {
         return;

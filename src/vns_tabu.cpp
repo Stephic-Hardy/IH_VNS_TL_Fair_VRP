@@ -152,6 +152,7 @@ RoutePack VNSTabu::VnsTabuAdvanced(const InputData& input_data, double ST, int A
             bool in_tabu = false;
 
             TabuHash move_hash = move->GetTabuHash();
+            MoveType move_type = move->Type();
             in_tabu = (std::ranges::find(tabu_list_moves, move_hash) != tabu_list_moves.end());
 
             if (neighbor_metrics > best_metrics) {
@@ -191,7 +192,6 @@ RoutePack VNSTabu::VnsTabuAdvanced(const InputData& input_data, double ST, int A
                 current = neighbor;
                 improved_in_neighborhood = true;
 
-                auto move_type = move->Type();
                 if (move_type == N1_REMOVE_INSERT || move_type == N2_SWAP_ADJ ||
                     move_type == N3_SWAP) {
                     tabu_list_moves.push_back(move_hash);
