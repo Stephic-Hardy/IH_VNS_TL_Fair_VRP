@@ -8,7 +8,7 @@
 class VNSTabu {
 public:
     static RoutePack VnsTabuAdvanced(const InputData& input_data, double ST, int AON,
-                                     int max_iterations_without_improve, int time_limit,
+                                     int max_iterations_without_improve, double time_limit,
                                      const RoutePack& initial_solution, size_t route,
                                      quill::Logger* logger);
 
@@ -16,7 +16,7 @@ public:
                                     int max_iter, size_t route);
 
     static RoutePack VnsTabuGlobal(const InputData& input_data, double ST, int AON,
-                                   int max_iterations_without_improve, int time_limit,
+                                   int max_iterations_without_improve, double time_limit,
                                    const RoutePack& initial_solution, double alpha,
                                    quill::Logger* logger);
 };

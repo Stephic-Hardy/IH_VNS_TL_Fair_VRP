@@ -24,7 +24,7 @@ std::vector<std::unique_ptr<Neighborhood>> GlobalNeighborhoods() {
 }  // namespace
 
 RoutePack VNSTabu::VnsTabuGlobal(const InputData& input_data, double ST [[maybe_unused]], int AON,
-                                 int max_iterations_without_improve, int time_limit,
+                                 int max_iterations_without_improve, double time_limit,
                                  const RoutePack& initial_solution, double alpha,
                                  quill::Logger* logger) {
     auto start_time = std::chrono::steady_clock::now();
@@ -91,7 +91,7 @@ RoutePack VNSTabu::VnsTabuGlobal(const InputData& input_data, double ST [[maybe_
             iter_no_improve++;
         }
 
-        while (tabu_list_moves.size() > static_cast<size_t>(AON * 2)) {
+        while (tabu_list_moves.size() > static_cast<size_t>(AON)) {
             tabu_list_moves.pop_front();
         }
     }

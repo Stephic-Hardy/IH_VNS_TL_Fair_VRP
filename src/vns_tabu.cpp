@@ -77,7 +77,7 @@ RoutePack VNSTabu::VnsWithoutTabu(const RoutePack& start_solution, const InputDa
 }
 
 RoutePack VNSTabu::VnsTabuAdvanced(const InputData& input_data, double ST, int AON,
-                                   int max_iterations_without_improve, int time_limit,
+                                   int max_iterations_without_improve, double time_limit,
                                    const RoutePack& initial_solution, size_t route,
                                    quill::Logger* logger) {
 
@@ -170,7 +170,12 @@ RoutePack VNSTabu::VnsTabuAdvanced(const InputData& input_data, double ST, int A
                 improved_in_neighborhood = true;
                 global_improved_in_iteration = true;
 
-                tabu_list_moves.push_back(move_hash);
+                if (move_type == N1_REMOVE_INSERT || move_type == N2_SWAP_ADJ ||
+                    move_type == N3_SWAP) {
+                    tabu_list_moves.push_back(move_hash);
+                } else if (move_type == N4_2OPT) {
+                    tabu_list_2opt.push_back(move_hash);
+                }
 
                 iterations_without_global_improve = 0;
                 break;

@@ -26,7 +26,7 @@ private:
     const double st_;
     const int aon_;
     const int max_iter_;
-    const int time_limit_;
+    const double time_limit_;
 };
 
 class AnnealingOptimizer : public Optimizer {
@@ -40,7 +40,7 @@ private:
     const double st_;
     const int aon_;
     const int max_iter_;
-    const int time_limit_;
+    const double time_limit_;
     const double alpha_;
 };
 
@@ -55,6 +55,6 @@ private:
     const double st_;
     const int aon_;
     const int max_iter_;
-    const int time_limit_;
+    const double time_limit_;
     const double fairness_;
 };
