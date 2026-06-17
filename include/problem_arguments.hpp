@@ -53,6 +53,22 @@ struct AgentSolution {
     uint64_t total_value{};
 };
 
+struct ExecutionStats {
+    // VnsTabuGlobal metrics
+    double global_vns_time = 0.0;
+    uint64_t global_vns_iterations = 0;
+
+    // VnsTabuAdvanced metrics
+    double advanced_vns_time = 0.0;
+    uint64_t advanced_vns_iterations = 0;
+
+    // VnsWithoutTabu metrics
+    double local_vns_time = 0.0;
+    uint64_t local_vns_iterations = 0;
+
+    ExecutionStats() = default;
+};
+
 struct BenchmarkMetadata {
     double st;
     int aon;
@@ -62,9 +78,11 @@ struct BenchmarkMetadata {
 
     // Annealing sepcific
     double alpha = 0.5;
-    
+
     // Rebalancing sepcific
     double fairness = 0.5;
+
+    ExecutionStats stats;
 };
 
 struct Solution {

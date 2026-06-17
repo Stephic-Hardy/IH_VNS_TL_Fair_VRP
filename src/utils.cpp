@@ -42,6 +42,20 @@ quill::Logger *CreateOrGetLogger(std::string name, int verbose) {
     return logger;
 }
 
+void PrintVNSThroughput(quill::Logger *logger, const Solution &solution) {
+    const auto &stats = solution.meta.stats;
+    LOG_INFO(logger, "--- VNS Throughput Metrics ---");
+    LOG_INFO(logger, "Global:   {} iterations in {:.3f} sec ({:.1f} iter/sec)",
+             stats.global_vns_iterations, stats.global_vns_time,
+             stats.global_vns_time > 0 ? static_cast<double>(stats.global_vns_iterations) / stats.global_vns_time : 0.0);
+    LOG_INFO(logger, "Advanced: {} iterations in {:.3f} sec ({:.1f} iter/sec)",
+             stats.advanced_vns_iterations, stats.advanced_vns_time,
+             stats.advanced_vns_time > 0 ? static_cast<double>(stats.advanced_vns_iterations) / stats.advanced_vns_time : 0.0);
+    LOG_INFO(logger, "Local:    {} iterations in {:.3f} sec ({:.1f} iter/sec)",
+             stats.local_vns_iterations, stats.local_vns_time,
+             stats.local_vns_time > 0 ? static_cast<double>(stats.local_vns_iterations) / stats.local_vns_time : 0.0);
+}
+
 void PrintGiniDistance(quill::Logger *logger, const Solution &solution) {
     if (solution.agents.empty()) {
         LOG_INFO(logger, "Нет данных для анализа.");

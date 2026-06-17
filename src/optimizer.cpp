@@ -19,6 +19,7 @@ void BaselineOptimizer::EnrichMeta(BenchmarkMetadata &meta) {
     meta.aon = aon_;
     meta.max_iter = max_iter_;
     meta.time_limit = time_limit_;
+    meta.stats = stats_;
 }
 
 RoutePack BaselineOptimizer::Optimize(RoutePack &routes, const InputData &input_data) {
@@ -27,7 +28,7 @@ RoutePack BaselineOptimizer::Optimize(RoutePack &routes, const InputData &input_
         LOG_DEBUG(logger_, "Agent {}: optimizing {} points...", route_idx,
                   routes.GetRoute(route_idx).Length());
         routes = VNSTabu::VnsTabuAdvanced(input_data, st_, aon_, max_iter_, time_limit_, routes,
-                                          route_idx, logger_);
+                                          route_idx, logger_, stats_);
     }
     PostProcessAllRoutes(routes, input_data);
     return routes;
@@ -44,18 +45,19 @@ void AnnealingOptimizer::EnrichMeta(BenchmarkMetadata &meta) {
     meta.max_iter = max_iter_;
     meta.time_limit = time_limit_;
     meta.alpha = alpha_;
+    meta.stats = stats_;
 }
 
 RoutePack AnnealingOptimizer::Optimize(RoutePack &routes, const InputData &input_data) {
     LOG_DEBUG(logger_, "Starting global fairness optimization across all routes...");
     routes = VNSTabu::VnsTabuGlobal(input_data, st_, aon_, max_iter_, time_limit_, routes, alpha_,
-                                    logger_);
+                                    logger_, stats_);
 
     for (size_t route_idx = 0; route_idx < routes.Size(); ++route_idx) {
         LOG_DEBUG(logger_, "Agent {}: optimizing {} points...", route_idx,
                   routes.GetRoute(route_idx).Length());
         routes = VNSTabu::VnsTabuAdvanced(input_data, st_, aon_, max_iter_, time_limit_, routes,
-                                          route_idx, logger_);
+                                          route_idx, logger_, stats_);
     }
     PostProcessAllRoutes(routes, input_data);
     return routes;
@@ -72,6 +74,7 @@ void RebalancingOptimizer::EnrichMeta(BenchmarkMetadata &meta) {
     meta.max_iter = max_iter_;
     meta.time_limit = time_limit_;
     meta.fairness = fairness_;
+    meta.stats = stats_;
 }
 
 RoutePack RebalancingOptimizer::Optimize(RoutePack &routes, const InputData &input_data) {
@@ -79,7 +82,7 @@ RoutePack RebalancingOptimizer::Optimize(RoutePack &routes, const InputData &inp
     for (size_t route_idx = 0; route_idx < routes.Size(); ++route_idx) {
         LOG_DEBUG(logger_, "Agent {}: initial optimization...", route_idx + 1);
         routes = VNSTabu::VnsTabuAdvanced(input_data, st_, aon_, max_iter_, time_limit_, routes,
-                                          route_idx, logger_);
+                                          route_idx, logger_, stats_);
     }
 
     LOG_DEBUG(logger_, "\nStep 2: Initial post-processing...");
@@ -91,7 +94,7 @@ RoutePack RebalancingOptimizer::Optimize(RoutePack &routes, const InputData &inp
     for (size_t i = 0; i < routes.Size(); ++i) {
         LOG_DEBUG(logger_, "Final Polish for Agent {}/{}...", i + 1, routes.Size());
         routes = VNSTabu::VnsTabuAdvanced(input_data, st_, aon_, max_iter_, time_limit_, routes, i,
-                                          logger_);
+                                          logger_, stats_);
     }
 
     PostProcessAllRoutes(routes, input_data);

@@ -26,7 +26,7 @@ std::vector<std::unique_ptr<Neighborhood>> GlobalNeighborhoods() {
 RoutePack VNSTabu::VnsTabuGlobal(const InputData& input_data, double ST [[maybe_unused]], int AON,
                                  int max_iterations_without_improve, double time_limit,
                                  const RoutePack& initial_solution, double alpha,
-                                 quill::Logger* logger) {
+                                 quill::Logger* logger, ExecutionStats& stats) {
     auto start_time = std::chrono::steady_clock::now();
     LOG_DEBUG(logger, "=================================================================");
     LOG_DEBUG(logger, "STARTING INTERROUTE FAIRNESS VNS+TABU ALGORITHM");
@@ -48,6 +48,7 @@ RoutePack VNSTabu::VnsTabuGlobal(const InputData& input_data, double ST [[maybe_
     };
 
     while (true) {
+        ++stats.global_vns_iterations;
         auto elapsed = std::chrono::duration_cast<std::chrono::seconds>(
                            std::chrono::steady_clock::now() - start_time)
                            .count();
@@ -95,6 +96,9 @@ RoutePack VNSTabu::VnsTabuGlobal(const InputData& input_data, double ST [[maybe_
             tabu_list_moves.pop_front();
         }
     }
+    
+    auto end_time = std::chrono::steady_clock::now();
+    stats.global_vns_time += std::chrono::duration<double>(end_time - start_time).count();
 
     return best_global;
 }

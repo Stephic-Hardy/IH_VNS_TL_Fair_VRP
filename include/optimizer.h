@@ -13,6 +13,7 @@ public:
 
 protected:
     quill::Logger* logger_ = nullptr;
+    ExecutionStats stats_;
 };
 
 class BaselineOptimizer : public Optimizer {

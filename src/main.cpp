@@ -87,8 +87,6 @@ int main(int argc, char* argv[]) {
         return 1;
     }
 
-    auto start_timer = std::chrono::high_resolution_clock::now();
-
     Solution solution;
     switch (algorithm) {
         case AlgorithmType::baseline:
@@ -102,19 +100,16 @@ int main(int argc, char* argv[]) {
             break;
     }
 
-    auto end_timer = std::chrono::high_resolution_clock::now();
-    double exec_time_sec = std::chrono::duration<double>(end_timer - start_timer).count();
-
+    PrintVNSThroughput(logger, solution);
     PrintGiniDistance(logger, solution);
 
     // Saving found solution
     bool save_success = false;
-    BenchmarkMetadata meta{st, aon, max_iter, time_limit, exec_time_sec};
-    save_success = JsonParser::WriteBenchmarkToJsonFile(output_json, solution, meta);
+    save_success = JsonParser::WriteSolutionToJsonFile(output_json, solution);
 
     if (save_success) {
         LOG_INFO(logger, "Successfully saved {} agents to {}", solution.agents.size(), output_json);
-        LOG_INFO(logger, "Execution time: {}s", exec_time_sec);
+        LOG_INFO(logger, "Execution time: {}s", solution.meta.execution_time);
     } else {
         LOG_ERROR(logger, "Failed to write output JSON.");
         return 1;

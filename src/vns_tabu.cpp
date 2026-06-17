@@ -26,7 +26,7 @@ std::vector<std::unique_ptr<Neighborhood>> Neighborhoods() {
 }  // namespace
 
 RoutePack VNSTabu::VnsWithoutTabu(const RoutePack& start_solution, const InputData& input_data,
-                                  int max_iter, size_t route) {
+                                  int max_iter, size_t route, ExecutionStats& stats) {
     RoutePack best = start_solution;
 
     SolutionMetrics best_metrics = {
@@ -37,8 +37,11 @@ RoutePack VNSTabu::VnsWithoutTabu(const RoutePack& start_solution, const InputDa
     RoutePack current = best;
 
     auto neighborhoods = Neighborhoods();
+    
+    auto start_time = std::chrono::steady_clock::now();
 
     for (int iter = 0; iter < max_iter; ++iter) {
+        ++stats.local_vns_iterations;
         bool improved = false;
 
         for (auto& neighborhood : neighborhoods) {
@@ -72,6 +75,9 @@ RoutePack VNSTabu::VnsWithoutTabu(const RoutePack& start_solution, const InputDa
             break;
         }
     }
+    
+    auto end_time = std::chrono::steady_clock::now();
+    stats.local_vns_time += std::chrono::duration<double>(end_time - start_time).count();;
 
     return best;
 }
@@ -79,7 +85,7 @@ RoutePack VNSTabu::VnsWithoutTabu(const RoutePack& start_solution, const InputDa
 RoutePack VNSTabu::VnsTabuAdvanced(const InputData& input_data, double ST, int AON,
                                    int max_iterations_without_improve, double time_limit,
                                    const RoutePack& initial_solution, size_t route,
-                                   quill::Logger* logger) {
+                                   quill::Logger* logger, ExecutionStats& stats) {
 
     auto start_time = std::chrono::steady_clock::now();
 
@@ -119,6 +125,7 @@ RoutePack VNSTabu::VnsTabuAdvanced(const InputData& input_data, double ST, int A
 
     while (true) {
         total_iterations++;
+        ++stats.advanced_vns_iterations;
         auto current_time = std::chrono::steady_clock::now();
         auto elapsed =
             std::chrono::duration_cast<std::chrono::seconds>(current_time - start_time).count();
@@ -216,7 +223,7 @@ RoutePack VNSTabu::VnsTabuAdvanced(const InputData& input_data, double ST, int A
         if (LT.size() >= static_cast<size_t>(AON)) {
             std::vector<RoutePack> LT_VNS;
             for (size_t i = 0; i < LT.size(); ++i) {
-                RoutePack improved = VnsWithoutTabu(LT[i], input_data, 50, route);
+                RoutePack improved = VnsWithoutTabu(LT[i], input_data, 50, route, stats);
                 LT_VNS.push_back(improved);
 
                 SolutionMetrics improved_metrics = {
@@ -281,6 +288,7 @@ RoutePack VNSTabu::VnsTabuAdvanced(const InputData& input_data, double ST, int A
     auto end_time = std::chrono::steady_clock::now();
     auto total_elapsed =
         std::chrono::duration_cast<std::chrono::seconds>(end_time - start_time).count();
+    stats.advanced_vns_time += std::chrono::duration<double>(end_time - start_time).count();;
 
     LOG_DEBUG(logger, "\n=================================================================");
     LOG_DEBUG(logger, "ALGORITHM FINISHED");

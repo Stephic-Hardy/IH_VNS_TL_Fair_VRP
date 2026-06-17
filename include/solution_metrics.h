@@ -1,5 +1,7 @@
 #pragma once
 
+#include <optional>
+
 struct SolutionMetrics {
     double value;
     double cost;
@@ -30,4 +32,12 @@ struct SolutionMetrics {
     SolutionMetrics operator-(const SolutionMetrics& other) const {
         return {value - other.value, cost - other.cost, distance - other.distance};
     }
+};
+
+struct RouteMetricsUpdate {
+    SolutionMetrics delta;
+    int route1_idx;
+    SolutionMetrics route1_metrics;
+    std::optional<int> route2_idx = std::nullopt;
+    std::optional<SolutionMetrics> route2_metrics = std::nullopt;
 };
