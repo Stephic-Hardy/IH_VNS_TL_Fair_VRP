@@ -1,5 +1,6 @@
 #pragma once
 #include "problem_arguments.hpp"
+#include "solution_metrics.h"
 
 #include <functional>
 #include <vector>
@@ -20,11 +21,15 @@ public:
         InvalidateCache();
     }
 
-    double ComputeDistance(const InputData& input) const;
+    SolutionMetrics ComputeMetrics(const InputData& input) const;
+    
+    double ComputeDistance(const InputData& input) const; // TODO: make them private, leave only ComputeMetrics
 
     double ComputeCost(const InputData& input) const;
 
     double ComputeValue(const InputData& input) const;
+    
+    static SolutionMetrics ComputeMetrics(const std::vector<int>& vertices, const InputData& input);
     
     static double ComputeDistance(const std::vector<int>& vertices, const InputData& input);
 

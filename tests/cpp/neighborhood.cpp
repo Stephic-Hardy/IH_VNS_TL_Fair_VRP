@@ -222,11 +222,12 @@ TEST(Neighborhoods, CrossExchangeBoundsTest) {
 
     class MockCrossExchange : public CrossExchangeNeighborhood {
     public:
+        using CrossExchangeNeighborhood::CrossExchangeNeighborhood;
         using CrossExchangeNeighborhood::VisitEachMove;
     };
 
     MoveInterceptor interceptor;
-    MockCrossExchange().VisitEachMove(pack, interceptor.evaluate);
+    MockCrossExchange(4).VisitEachMove(pack, interceptor.evaluate);
 
     // Expect 36 moves:
     // R0 -> 6 moves: [1], [2], [3], [1,2], [2,3], [1,2,3]

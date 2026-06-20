@@ -18,6 +18,9 @@ uint64_t ComputeHash(Args... args) {
     (HashCombine(seed, static_cast<uint64_t>(args)), ...);
     return seed;
 }
+
+thread_local std::vector<int> buffer1;
+thread_local std::vector<int> buffer2;
 }  // namespace
 
 Move::Move(MoveType type, int route_idx) : route_idx_(route_idx), type_(type) {
@@ -54,33 +57,24 @@ RoutePack RemoveInsertMove::Apply(const RoutePack& sol) const {
     return new_sol;
 }
 
-SolutionMetrics RemoveInsertMove::EvaluateDelta(const RoutePack& sol, const InputData& input,
-                                                std::vector<int>& buffer, std::vector<int>&) const {
+RouteMetricsUpdate RemoveInsertMove::EvaluateDelta(const RoutePack& sol,
+                                                   const InputData& input) const {
     const Route& route = sol.GetRoute(route_idx_);
-    buffer = route.Vertices();
+    buffer1 = route.Vertices();
 
     {
-        int vertex = buffer[remove_pos_];
         if (remove_pos_ < insert_pos_) {
-            std::copy(buffer.begin() + remove_pos_ + 1, buffer.begin() + insert_pos_ + 1,
-                      buffer.begin() + remove_pos_);
-            buffer[insert_pos_] = vertex;
+            std::rotate(buffer1.begin() + remove_pos_, buffer1.begin() + remove_pos_ + 1,
+                        buffer1.begin() + insert_pos_ + 1);
         } else {
-            std::copy(buffer.begin() + insert_pos_, buffer.begin() + remove_pos_,
-                      buffer.begin() + insert_pos_ + 1);
-            buffer[insert_pos_] = vertex;
+            std::rotate(buffer1.begin() + insert_pos_, buffer1.begin() + remove_pos_,
+                        buffer1.begin() + remove_pos_ + 1);
         }
     }
 
-    SolutionMetrics old_metrics = {route.ComputeValue(input), route.ComputeCost(input),
-                                   route.ComputeDistance(input)};
-    SolutionMetrics new_metrics = {
-        Route::ComputeValue(buffer, input),
-        Route::ComputeCost(buffer, input),
-        Route::ComputeDistance(buffer, input),
-    };
-
-    return new_metrics - old_metrics;
+    SolutionMetrics old_metrics = route.ComputeMetrics(input);
+    SolutionMetrics new_metrics = Route::ComputeMetrics(buffer1, input);
+    return {new_metrics - old_metrics, route_idx_, new_metrics};
 }
 
 TabuHash RemoveInsertMove::GetTabuHash() const {
@@ -113,24 +107,17 @@ RoutePack SwapMove::Apply(const RoutePack& sol) const {
     return new_sol;
 }
 
-SolutionMetrics SwapMove::EvaluateDelta(const RoutePack& sol, const InputData& input,
-                                        std::vector<int>& buffer, std::vector<int>&) const {
+RouteMetricsUpdate SwapMove::EvaluateDelta(const RoutePack& sol, const InputData& input) const {
     const Route& route = sol.GetRoute(route_idx_);
-    buffer = route.Vertices();
+    buffer1 = route.Vertices();
 
     {
-        std::swap(buffer[pos1_], buffer[pos2_]);
+        std::swap(buffer1[pos1_], buffer1[pos2_]);
     }
 
-    SolutionMetrics old_metrics = {route.ComputeValue(input), route.ComputeCost(input),
-                                   route.ComputeDistance(input)};
-    SolutionMetrics new_metrics = {
-        Route::ComputeValue(buffer, input),
-        Route::ComputeCost(buffer, input),
-        Route::ComputeDistance(buffer, input),
-    };
-
-    return new_metrics - old_metrics;
+    SolutionMetrics old_metrics = route.ComputeMetrics(input);
+    SolutionMetrics new_metrics = Route::ComputeMetrics(buffer1, input);
+    return {new_metrics - old_metrics, route_idx_, new_metrics};
 }
 
 TabuHash SwapMove::GetTabuHash() const {
@@ -155,24 +142,17 @@ RoutePack TwoOptMove::Apply(const RoutePack& sol) const {
     return new_sol;
 }
 
-SolutionMetrics TwoOptMove::EvaluateDelta(const RoutePack& sol, const InputData& input,
-                                          std::vector<int>& buffer, std::vector<int>&) const {
+RouteMetricsUpdate TwoOptMove::EvaluateDelta(const RoutePack& sol, const InputData& input) const {
     const Route& route = sol.GetRoute(route_idx_);
-    buffer = route.Vertices();
+    buffer1 = route.Vertices();
 
     {
-        std::reverse(buffer.begin() + start_pos_, buffer.begin() + end_pos_ + 1);
+        std::reverse(buffer1.begin() + start_pos_, buffer1.begin() + end_pos_ + 1);
     }
 
-    SolutionMetrics old_metrics = {route.ComputeValue(input), route.ComputeCost(input),
-                                   route.ComputeDistance(input)};
-    SolutionMetrics new_metrics = {
-        Route::ComputeValue(buffer, input),
-        Route::ComputeCost(buffer, input),
-        Route::ComputeDistance(buffer, input),
-    };
-
-    return new_metrics - old_metrics;
+    SolutionMetrics old_metrics = route.ComputeMetrics(input);
+    SolutionMetrics new_metrics = Route::ComputeMetrics(buffer1, input);
+    return {new_metrics - old_metrics, route_idx_, new_metrics};
 }
 
 TabuHash TwoOptMove::GetTabuHash() const {
@@ -206,30 +186,24 @@ RoutePack BlockRelocateMove::Apply(const RoutePack& sol) const {
     return new_sol;
 }
 
-SolutionMetrics BlockRelocateMove::EvaluateDelta(const RoutePack& sol, const InputData& input,
-                                                 std::vector<int>& buffer,
-                                                 std::vector<int>&) const {
+RouteMetricsUpdate BlockRelocateMove::EvaluateDelta(const RoutePack& sol,
+                                                    const InputData& input) const {
     const Route& route = sol.GetRoute(route_idx_);
-    buffer = route.Vertices();
+    buffer1 = route.Vertices();
 
     {
-        auto begin_it = buffer.begin() + start_pos_;
-        auto end_it = begin_it + length_;
-        std::vector<int> block(begin_it, end_it);
-
-        buffer.erase(begin_it, end_it);
-        buffer.insert(buffer.begin() + insert_pos_, block.begin(), block.end());
+        if (insert_pos_ > start_pos_) {
+            std::rotate(buffer1.begin() + start_pos_, buffer1.begin() + start_pos_ + length_,
+                        buffer1.begin() + insert_pos_ + length_);
+        } else {
+            std::rotate(buffer1.begin() + insert_pos_, buffer1.begin() + start_pos_,
+                        buffer1.begin() + start_pos_ + length_);
+        }
     }
 
-    SolutionMetrics old_metrics = {route.ComputeValue(input), route.ComputeCost(input),
-                                   route.ComputeDistance(input)};
-    SolutionMetrics new_metrics = {
-        Route::ComputeValue(buffer, input),
-        Route::ComputeCost(buffer, input),
-        Route::ComputeDistance(buffer, input),
-    };
-
-    return new_metrics - old_metrics;
+    SolutionMetrics old_metrics = route.ComputeMetrics(input);
+    SolutionMetrics new_metrics = Route::ComputeMetrics(buffer1, input);
+    return {new_metrics - old_metrics, route_idx_, new_metrics};
 }
 
 TabuHash BlockRelocateMove::GetTabuHash() const {
@@ -261,24 +235,18 @@ RoutePack ReorderBlockMove::Apply(const RoutePack& sol) const {
     return new_sol;
 }
 
-SolutionMetrics ReorderBlockMove::EvaluateDelta(const RoutePack& sol, const InputData& input,
-                                                std::vector<int>& buffer, std::vector<int>&) const {
+RouteMetricsUpdate ReorderBlockMove::EvaluateDelta(const RoutePack& sol,
+                                                   const InputData& input) const {
     const Route& route = sol.GetRoute(route_idx_);
-    buffer = route.Vertices();
+    buffer1 = route.Vertices();
 
     {
-        std::copy(new_order_.begin(), new_order_.end(), buffer.begin() + start_pos_);
+        std::copy(new_order_.begin(), new_order_.end(), buffer1.begin() + start_pos_);
     }
 
-    SolutionMetrics old_metrics = {route.ComputeValue(input), route.ComputeCost(input),
-                                   route.ComputeDistance(input)};
-    SolutionMetrics new_metrics = {
-        Route::ComputeValue(buffer, input),
-        Route::ComputeCost(buffer, input),
-        Route::ComputeDistance(buffer, input),
-    };
-
-    return new_metrics - old_metrics;
+    SolutionMetrics old_metrics = route.ComputeMetrics(input);
+    SolutionMetrics new_metrics = Route::ComputeMetrics(buffer1, input);
+    return {new_metrics - old_metrics, route_idx_, new_metrics};
 }
 
 TabuHash ReorderBlockMove::GetTabuHash() const {
@@ -308,9 +276,8 @@ RoutePack InterRelocateMove::Apply(const RoutePack& sol) const {
     return new_sol;
 }
 
-SolutionMetrics InterRelocateMove::EvaluateDelta(const RoutePack& sol, const InputData& input,
-                                                 std::vector<int>& buffer1,
-                                                 std::vector<int>& buffer2) const {
+RouteMetricsUpdate InterRelocateMove::EvaluateDelta(const RoutePack& sol,
+                                                    const InputData& input) const {
     const Route& route1 = sol.GetRoute(from_route_);
     const Route& route2 = sol.GetRoute(to_route_);
     buffer1 = route1.Vertices();
@@ -322,25 +289,11 @@ SolutionMetrics InterRelocateMove::EvaluateDelta(const RoutePack& sol, const Inp
         buffer2.insert(buffer2.begin() + to_pos_, vertex);
     }
 
-    SolutionMetrics old_metrics =
-        SolutionMetrics{route1.ComputeValue(input), route1.ComputeCost(input),
-                        route1.ComputeDistance(input)} +
-        SolutionMetrics{route2.ComputeValue(input), route2.ComputeCost(input),
-                        route2.ComputeDistance(input)};
-
-    SolutionMetrics new_metrics =
-        SolutionMetrics{
-            Route::ComputeValue(buffer1, input),
-            Route::ComputeCost(buffer1, input),
-            Route::ComputeDistance(buffer1, input),
-        } +
-        SolutionMetrics{
-            Route::ComputeValue(buffer2, input),
-            Route::ComputeCost(buffer2, input),
-            Route::ComputeDistance(buffer2, input),
-        };
-
-    return new_metrics - old_metrics;
+    SolutionMetrics old1 = route1.ComputeMetrics(input);
+    SolutionMetrics old2 = route2.ComputeMetrics(input);
+    SolutionMetrics new1 = Route::ComputeMetrics(buffer1, input);
+    SolutionMetrics new2 = Route::ComputeMetrics(buffer2, input);
+    return {(new1 + new2) - (old1 + old2), from_route_, new1, to_route_, new2};
 }
 
 TabuHash InterRelocateMove::GetTabuHash() const {
@@ -370,40 +323,22 @@ RoutePack InterSwapMove::Apply(const RoutePack& sol) const {
     return new_sol;
 }
 
-SolutionMetrics InterSwapMove::EvaluateDelta(const RoutePack& sol, const InputData& input,
-                                             std::vector<int>& buffer1,
-                                             std::vector<int>& buffer2) const {
+RouteMetricsUpdate InterSwapMove::EvaluateDelta(const RoutePack& sol,
+                                                const InputData& input) const {
     const Route& route1 = sol.GetRoute(route1_);
     const Route& route2 = sol.GetRoute(route2_);
     buffer1 = route1.Vertices();
     buffer2 = route2.Vertices();
 
     {
-        int v1 = sol.GetRoute(route1_).Vertices()[pos1_];
-        int v2 = sol.GetRoute(route2_).Vertices()[pos2_];
-        buffer1[pos1_] = v2;
-        buffer2[pos2_] = v1;
+        std::swap(buffer1[pos1_], buffer2[pos2_]);
     }
 
-    SolutionMetrics old_metrics =
-        SolutionMetrics{route1.ComputeValue(input), route1.ComputeCost(input),
-                        route1.ComputeDistance(input)} +
-        SolutionMetrics{route2.ComputeValue(input), route2.ComputeCost(input),
-                        route2.ComputeDistance(input)};
-
-    SolutionMetrics new_metrics =
-        SolutionMetrics{
-            Route::ComputeValue(buffer1, input),
-            Route::ComputeCost(buffer1, input),
-            Route::ComputeDistance(buffer1, input),
-        } +
-        SolutionMetrics{
-            Route::ComputeValue(buffer2, input),
-            Route::ComputeCost(buffer2, input),
-            Route::ComputeDistance(buffer2, input),
-        };
-
-    return new_metrics - old_metrics;
+    SolutionMetrics old1 = route1.ComputeMetrics(input);
+    SolutionMetrics old2 = route2.ComputeMetrics(input);
+    SolutionMetrics new1 = Route::ComputeMetrics(buffer1, input);
+    SolutionMetrics new2 = Route::ComputeMetrics(buffer2, input);
+    return {(new1 + new2) - (old1 + old2), route1_, new1, route2_, new2};
 }
 
 TabuHash InterSwapMove::GetTabuHash() const {
@@ -458,49 +393,32 @@ RoutePack CrossExchangeMove::Apply(const RoutePack& sol) const {
     return new_sol;
 }
 
-SolutionMetrics CrossExchangeMove::EvaluateDelta(const RoutePack& sol, const InputData& input,
-                                                 std::vector<int>& buffer1,
-                                                 std::vector<int>& buffer2) const {
+RouteMetricsUpdate CrossExchangeMove::EvaluateDelta(const RoutePack& sol,
+                                                    const InputData& input) const {
     const Route& route1 = sol.GetRoute(route1_);
     const Route& route2 = sol.GetRoute(route2_);
-    buffer1 = route1.Vertices();
-    buffer2 = route2.Vertices();
-
     {
-        const auto& route1_verts = sol.GetRoute(route1_).Vertices();
-        const auto& route2_verts = sol.GetRoute(route2_).Vertices();
+        const auto& route1_verts = route1.Vertices();
+        const auto& route2_verts = route2.Vertices();
 
-        std::vector<int> seg1(route1_verts.begin() + start1_,
-                              route1_verts.begin() + start1_ + len1_);
-        std::vector<int> seg2(route2_verts.begin() + start2_,
-                              route2_verts.begin() + start2_ + len2_);
+        buffer1.clear();
+        buffer1.insert(buffer1.end(), route1_verts.begin(), route1_verts.begin() + start1_);
+        buffer1.insert(buffer1.end(), route2_verts.begin() + start2_,
+                       route2_verts.begin() + start2_ + len2_);
+        buffer1.insert(buffer1.end(), route1_verts.begin() + start1_ + len1_, route1_verts.end());
 
-        buffer1.erase(buffer1.begin() + start1_, buffer1.begin() + start1_ + len1_);
-        buffer1.insert(buffer1.begin() + start1_, seg2.begin(), seg2.end());
-
-        buffer2.erase(buffer2.begin() + start2_, buffer2.begin() + start2_ + len2_);
-        buffer2.insert(buffer2.begin() + start2_, seg1.begin(), seg1.end());
+        buffer2.clear();
+        buffer2.insert(buffer2.end(), route2_verts.begin(), route2_verts.begin() + start2_);
+        buffer2.insert(buffer2.end(), route1_verts.begin() + start1_,
+                       route1_verts.begin() + start1_ + len1_);
+        buffer2.insert(buffer2.end(), route2_verts.begin() + start2_ + len2_, route2_verts.end());
     }
 
-    SolutionMetrics old_metrics =
-        SolutionMetrics{route1.ComputeValue(input), route1.ComputeCost(input),
-                        route1.ComputeDistance(input)} +
-        SolutionMetrics{route2.ComputeValue(input), route2.ComputeCost(input),
-                        route2.ComputeDistance(input)};
-
-    SolutionMetrics new_metrics =
-        SolutionMetrics{
-            Route::ComputeValue(buffer1, input),
-            Route::ComputeCost(buffer1, input),
-            Route::ComputeDistance(buffer1, input),
-        } +
-        SolutionMetrics{
-            Route::ComputeValue(buffer2, input),
-            Route::ComputeCost(buffer2, input),
-            Route::ComputeDistance(buffer2, input),
-        };
-
-    return new_metrics - old_metrics;
+    SolutionMetrics old1 = route1.ComputeMetrics(input);
+    SolutionMetrics old2 = route2.ComputeMetrics(input);
+    SolutionMetrics new1 = Route::ComputeMetrics(buffer1, input);
+    SolutionMetrics new2 = Route::ComputeMetrics(buffer2, input);
+    return {(new1 + new2) - (old1 + old2), route1_, new1, route2_, new2};
 }
 
 TabuHash CrossExchangeMove::GetTabuHash() const {
@@ -551,13 +469,10 @@ RoutePack TwoOptStarMove::Apply(const RoutePack& sol) const {
     return new_sol;
 }
 
-SolutionMetrics TwoOptStarMove::EvaluateDelta(const RoutePack& sol, const InputData& input,
-                                              std::vector<int>& buffer1,
-                                              std::vector<int>& buffer2) const {
+RouteMetricsUpdate TwoOptStarMove::EvaluateDelta(const RoutePack& sol,
+                                                 const InputData& input) const {
     const Route& route1 = sol.GetRoute(route1_);
     const Route& route2 = sol.GetRoute(route2_);
-    buffer1 = route1.Vertices();
-    buffer2 = route2.Vertices();
 
     {
         const auto& route1_verts = sol.GetRoute(route1_).Vertices();
@@ -565,30 +480,16 @@ SolutionMetrics TwoOptStarMove::EvaluateDelta(const RoutePack& sol, const InputD
 
         buffer1.assign(route1_verts.begin(), route1_verts.begin() + edge1_idx_ + 1);
         buffer2.assign(route2_verts.begin(), route2_verts.begin() + edge2_idx_ + 1);
-        
+
         buffer1.insert(buffer1.end(), route2_verts.begin() + edge2_idx_ + 1, route2_verts.end());
         buffer2.insert(buffer2.end(), route1_verts.begin() + edge1_idx_ + 1, route1_verts.end());
     }
 
-    SolutionMetrics old_metrics =
-        SolutionMetrics{route1.ComputeValue(input), route1.ComputeCost(input),
-                        route1.ComputeDistance(input)} +
-        SolutionMetrics{route2.ComputeValue(input), route2.ComputeCost(input),
-                        route2.ComputeDistance(input)};
-
-    SolutionMetrics new_metrics =
-        SolutionMetrics{
-            Route::ComputeValue(buffer1, input),
-            Route::ComputeCost(buffer1, input),
-            Route::ComputeDistance(buffer1, input),
-        } +
-        SolutionMetrics{
-            Route::ComputeValue(buffer2, input),
-            Route::ComputeCost(buffer2, input),
-            Route::ComputeDistance(buffer2, input),
-        };
-
-    return new_metrics - old_metrics;
+    SolutionMetrics old1 = route1.ComputeMetrics(input);
+    SolutionMetrics old2 = route2.ComputeMetrics(input);
+    SolutionMetrics new1 = Route::ComputeMetrics(buffer1, input);
+    SolutionMetrics new2 = Route::ComputeMetrics(buffer2, input);
+    return {(new1 + new2) - (old1 + old2), route1_, new1, route2_, new2};
 }
 
 TabuHash TwoOptStarMove::GetTabuHash() const {

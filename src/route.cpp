@@ -1,5 +1,6 @@
 #include "route.h"
 #include "problem_arguments.hpp"
+#include "solution_metrics.h"
 
 Route::Route() : cached_cost_(std::nullopt), cached_value_(std::nullopt) {
 }
@@ -13,6 +14,41 @@ size_t Route::Length() const {
 
 const std::vector<int>& Route::Vertices() const {
     return vertices_;
+}
+
+SolutionMetrics Route::ComputeMetrics(const std::vector<int>& vertices, const InputData& input) {
+    double total_value = 0.0;
+    double total_time = 0.0;
+    double total_distance = 0.0;
+
+    for (size_t i = 1; i < vertices.size(); ++i) {
+        int from = vertices[i - 1];
+        int to = vertices[i];
+
+        total_distance += input.distance_matrix[from][to];
+
+        if (to != 0) {
+            total_value += input.point_scores[to - 1];
+        }
+
+        int64_t travel_time = input.GetTimeDependentCost(static_cast<uint64_t>(total_time), from, to);
+        
+        total_value -= travel_time;
+        total_time += travel_time;
+
+        if (to != 0) {
+            total_time += input.point_service_times[to - 1];
+        }
+    }
+
+    int last = vertices.back();
+    total_distance += input.distance_matrix[last][0];
+    
+    int64_t return_time = input.GetTimeDependentCost(static_cast<uint64_t>(total_time), last, 0);
+    total_value -= return_time;
+    total_time += return_time;
+
+    return {total_value, total_time, total_distance};
 }
 
 double Route::ComputeDistance(const std::vector<int>& vertices, const InputData& input) {
@@ -92,6 +128,19 @@ double Route::ComputeValue(const std::vector<int>& vertices, const InputData& in
     total_value -= return_time;
 
     return total_value;
+}
+
+SolutionMetrics Route::ComputeMetrics(const InputData& input) const {
+    if (cached_value_.has_value() && cached_cost_.has_value() && cached_distance_.has_value()) {
+        return {cached_value_.value(), cached_cost_.value(), cached_distance_.value()};
+    }
+
+    SolutionMetrics metrics = Route::ComputeMetrics(vertices_, input);
+    cached_value_ = metrics.value;
+    cached_cost_ = metrics.cost;
+    cached_distance_ = metrics.distance;
+
+    return metrics;
 }
 
 double Route::ComputeValue(const InputData& input) const {

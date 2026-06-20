@@ -29,11 +29,7 @@ RoutePack VNSTabu::VnsWithoutTabu(const RoutePack& start_solution, const InputDa
                                   int max_iter, size_t route, ExecutionStats& stats) {
     RoutePack best = start_solution;
 
-    SolutionMetrics best_metrics = {
-        best.GetRoute(route).ComputeCost(input_data),
-        best.GetRoute(route).ComputeValue(input_data),
-        best.GetRoute(route).ComputeDistance(input_data),
-    };
+    SolutionMetrics best_metrics = best.GetRoute(route).ComputeMetrics(input_data);
     RoutePack current = best;
 
     auto neighborhoods = Neighborhoods();
@@ -47,17 +43,8 @@ RoutePack VNSTabu::VnsWithoutTabu(const RoutePack& start_solution, const InputDa
         for (auto& neighborhood : neighborhoods) {
             auto [neighbor, _] = neighborhood->FindBestNeighbor(current, input_data, route);
 
-            SolutionMetrics neighbor_metrics = {
-                neighbor.GetRoute(route).ComputeCost(input_data),
-                neighbor.GetRoute(route).ComputeValue(input_data),
-                neighbor.GetRoute(route).ComputeDistance(input_data),
-            };
-
-            SolutionMetrics current_metrics = {
-                current.GetRoute(route).ComputeCost(input_data),
-                current.GetRoute(route).ComputeValue(input_data),
-                current.GetRoute(route).ComputeDistance(input_data),
-            };
+            SolutionMetrics neighbor_metrics = neighbor.GetRoute(route).ComputeMetrics(input_data);
+            SolutionMetrics current_metrics = current.GetRoute(route).ComputeMetrics(input_data);
 
             if (neighbor_metrics > best_metrics) {
                 best = neighbor;
@@ -150,11 +137,7 @@ RoutePack VNSTabu::VnsTabuAdvanced(const InputData& input_data, double ST, int A
                 continue;
             }
 
-            SolutionMetrics neighbor_metrics = {
-                neighbor.GetRoute(route).ComputeCost(input_data),
-                neighbor.GetRoute(route).ComputeValue(input_data),
-                neighbor.GetRoute(route).ComputeDistance(input_data),
-            };
+            SolutionMetrics neighbor_metrics = neighbor.GetRoute(route).ComputeMetrics(input_data);
 
             bool in_tabu = false;
 
@@ -189,11 +172,7 @@ RoutePack VNSTabu::VnsTabuAdvanced(const InputData& input_data, double ST, int A
                 break;
             }
 
-            SolutionMetrics current_metrics = {
-                current.GetRoute(route).ComputeValue(input_data),
-                current.GetRoute(route).ComputeCost(input_data),
-                current.GetRoute(route).ComputeDistance(input_data),
-            };
+            SolutionMetrics current_metrics = current.GetRoute(route).ComputeMetrics(input_data);
 
             if (!in_tabu && neighbor_metrics > current_metrics) {
                 current = neighbor;
@@ -226,11 +205,8 @@ RoutePack VNSTabu::VnsTabuAdvanced(const InputData& input_data, double ST, int A
                 RoutePack improved = VnsWithoutTabu(LT[i], input_data, 50, route, stats);
                 LT_VNS.push_back(improved);
 
-                SolutionMetrics improved_metrics = {
-                    improved.GetRoute(route).ComputeCost(input_data),
-                    improved.GetRoute(route).ComputeValue(input_data),
-                    improved.GetRoute(route).ComputeDistance(input_data),
-                };
+                SolutionMetrics improved_metrics =
+                    improved.GetRoute(route).ComputeMetrics(input_data);
 
                 if (improved_metrics > best_metrics) {
                     best_global = improved;
@@ -253,11 +229,7 @@ RoutePack VNSTabu::VnsTabuAdvanced(const InputData& input_data, double ST, int A
             current.MutateRoute(route) =
                 InsertionHeuristic::BuildInitialTour(agent_subset, input_data);
 
-            SolutionMetrics new_metrics = {
-                current.GetRoute(route).ComputeCost(input_data),
-                current.GetRoute(route).ComputeValue(input_data),
-                current.GetRoute(route).ComputeDistance(input_data),
-            };
+            SolutionMetrics new_metrics = current.GetRoute(route).ComputeMetrics(input_data);
 
             if (new_metrics > best_metrics) {
                 best_global = current;

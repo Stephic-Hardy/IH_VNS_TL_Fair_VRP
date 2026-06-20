@@ -2,6 +2,7 @@
 #include "solution_metrics.h"
 
 #include <algorithm>
+#include <cassert>
 #include <functional>
 #include <vector>
 
@@ -11,21 +12,19 @@ constexpr double kEps = 1e-9;
 
 std::pair<RoutePack, std::unique_ptr<Move>> Neighborhood::FindBestNeighbor(
     const RoutePack& sol, const InputData& input_data, size_t route) const {
+
     RoutePack best_neighbor = sol;
     std::unique_ptr<Move> best_move = nullptr;
 
-    SolutionMetrics base_metrics = {sol.ComputeValue(input_data), sol.ComputeCost(input_data),
-                                    sol.ComputeDistance(input_data)};
-
+    SolutionMetrics base_metrics = sol.GetRoute(route).ComputeMetrics(input_data);
     SolutionMetrics best_metrics = base_metrics;
 
-    std::vector<int> buffer1, buffer2;
-    buffer1.reserve(input_data.points_count + 2);
-    buffer2.reserve(input_data.points_count + 2);
-
     auto eval = [&](const Move& move) {
-        SolutionMetrics neighbor_metrics =
-            base_metrics + move.EvaluateDelta(sol, input_data, buffer1, buffer2);
+        RouteMetricsUpdate update = move.EvaluateDelta(sol, input_data);
+        assert(update.route1_idx == static_cast<int>(route) && !update.route2_idx.has_value() &&
+               !update.route2_metrics.has_value());
+
+        SolutionMetrics neighbor_metrics = update.route1_metrics;
 
         if (neighbor_metrics > best_metrics) {
             best_metrics = neighbor_metrics;
@@ -37,29 +36,52 @@ std::pair<RoutePack, std::unique_ptr<Move>> Neighborhood::FindBestNeighbor(
     if (best_move) {
         best_neighbor = best_move->Apply(sol);
     }
-
     return {std::move(best_neighbor), std::move(best_move)};
 }
 
 std::pair<RoutePack, std::unique_ptr<Move>> Neighborhood::FindBestNeighbor(
     const RoutePack& sol, const InputData& input_data,
-    std::function<double(const RoutePack&)> penalty) const {
+    std::function<double(const std::vector<SolutionMetrics>&)> penalty) const {
+
     RoutePack best_neighbor = sol;
     std::unique_ptr<Move> best_move = nullptr;
 
-    std::function eval = [&](const Move& move) {
-        RoutePack neighbor = move.Apply(sol);
-        if (!neighbor.IsValid(input_data)) {
-            return;
+    std::vector<SolutionMetrics> base_route_metrics;
+    base_route_metrics.reserve(sol.Size());
+    for (size_t i = 0; i < sol.Size(); ++i) {
+        base_route_metrics.push_back(sol.GetRoute(i).ComputeMetrics(input_data));
+    }
+
+    double best_penalty = penalty(base_route_metrics);
+
+    auto eval = [&](const Move& move) {
+        RouteMetricsUpdate update = move.EvaluateDelta(sol, input_data);
+
+        SolutionMetrics old_metrics1 = base_route_metrics[update.route1_idx];
+        base_route_metrics[update.route1_idx] = update.route1_metrics;
+        SolutionMetrics old_metrics2;
+        if (update.route2_idx.has_value()) {
+            old_metrics2 = base_route_metrics[update.route2_idx.value()];
+            base_route_metrics[update.route2_idx.value()] = update.route2_metrics.value();
         }
 
-        if (penalty(neighbor) < penalty(best_neighbor) - kEps) {
-            best_neighbor = neighbor;
+        double new_penalty = penalty(base_route_metrics);
+
+        base_route_metrics[update.route1_idx] = old_metrics1;
+        if (update.route2_idx.has_value()) {
+            base_route_metrics[update.route2_idx.value()] = old_metrics2;
+        }
+
+        if (new_penalty < best_penalty - kEps) {
+            best_penalty = new_penalty;
             best_move = move.Clone();
         }
     };
 
     VisitEachMove(sol, eval);
+    if (best_move) {
+        best_neighbor = best_move->Apply(sol);
+    }
     return {std::move(best_neighbor), std::move(best_move)};
 }
 
@@ -227,6 +249,9 @@ void InterSwapNeighborhood::VisitEachMove(const RoutePack& sol,
     }
 }
 
+CrossExchangeNeighborhood::CrossExchangeNeighborhood(size_t k) : k_(k) {
+}
+
 void CrossExchangeNeighborhood::VisitEachMove(const RoutePack& sol,
                                               std::function<void(const Move&)> evaluator) const {
     size_t num_routes = sol.Size();
@@ -241,9 +266,9 @@ void CrossExchangeNeighborhood::VisitEachMove(const RoutePack& sol,
             size_t n2 = sol.GetRoute(r2).Length();
 
             for (size_t s1 = 1; s1 < n1; ++s1) {
-                for (size_t len1 = 1; s1 + len1 <= n1; ++len1) {
+                for (size_t len1 = 1; len1 <= k_ && s1 + len1 <= n1; ++len1) {
                     for (size_t s2 = 1; s2 < n2; ++s2) {
-                        for (size_t len2 = 1; s2 + len2 <= n2; ++len2) {
+                        for (size_t len2 = 1; len2 <= k_ && s2 + len2 <= n2; ++len2) {
                             CrossExchangeMove move(r1, r2, s1, len1, s2, len2);
                             evaluator(move);
                         }

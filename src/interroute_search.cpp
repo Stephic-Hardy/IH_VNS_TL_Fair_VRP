@@ -5,7 +5,9 @@
 
 #include <chrono>
 #include <algorithm>
+#include <cmath>
 #include <deque>
+#include <vector>
 #include <quill/Logger.h>
 #include <quill/LogMacros.h>
 
@@ -14,12 +16,22 @@ std::vector<std::unique_ptr<Neighborhood>> GlobalNeighborhoods() {
     std::vector<std::unique_ptr<Neighborhood>> nh;
     nh.push_back(std::make_unique<InterRelocateNeighborhood>());
     nh.push_back(std::make_unique<InterSwapNeighborhood>());
-    nh.push_back(std::make_unique<CrossExchangeNeighborhood>());
+    nh.push_back(std::make_unique<CrossExchangeNeighborhood>(4));
     nh.push_back(std::make_unique<TwoOptStarNeighborhood>());
 
     nh.push_back(std::make_unique<MoveVertexNeighborhood>());
     nh.push_back(std::make_unique<SwapNeighborhood>());
     return nh;
+}
+
+thread_local std::vector<SolutionMetrics> metrics_buffer;
+const std::vector<SolutionMetrics> &GetMetrics(const RoutePack& pack, const InputData& input_data) {
+    metrics_buffer.clear();
+    metrics_buffer.reserve(pack.Size());
+    for (size_t i = 0; i < pack.Size(); ++i) {
+        metrics_buffer.push_back(pack.GetRoute(i).ComputeMetrics(input_data));
+    }
+    return metrics_buffer;
 }
 }  // namespace
 
@@ -41,11 +53,25 @@ RoutePack VNSTabu::VnsTabuGlobal(const InputData& input_data, double ST [[maybe_
 
     auto neighborhoods = GlobalNeighborhoods();
 
-    auto penalty = [&](const RoutePack& solution) {
-        double total_cost = solution.ComputeCost(input_data);
-        double stdev = solution.ComputeDistanceStandardDeviation(input_data);
-        return total_cost + alpha * stdev * solution.Size();
+    auto penalty = [&](const std::vector<SolutionMetrics>& metrics) {
+        double total_cost = 0;
+        double sum_dist = 0;
+        double sum_sq_dist = 0;
+
+        for (const auto& m : metrics) {
+            total_cost += m.cost;
+            sum_dist += m.distance;
+            sum_sq_dist += m.distance * m.distance;
+        }
+
+        double n = static_cast<double>(metrics.size());
+        double mean = sum_dist / n;
+        double variance = std::max(0.0, (sum_sq_dist / n) - (mean * mean));
+        double stdev = std::sqrt(variance);
+
+        return total_cost + alpha * stdev * n;
     };
+    double best_global_penalty = penalty(GetMetrics(best_global, input_data));
 
     while (true) {
         ++stats.global_vns_iterations;
@@ -69,11 +95,13 @@ RoutePack VNSTabu::VnsTabuGlobal(const InputData& input_data, double ST [[maybe_
             TabuHash hash = move->GetTabuHash();
             bool in_tabu = (std::ranges::find(tabu_list_moves, hash) != tabu_list_moves.end());
 
-            if (penalty(neighbor) < penalty(best_global) - 1e-9) {
+            double neighbor_penalty = penalty(GetMetrics(neighbor, input_data));
+            if (neighbor_penalty < best_global_penalty - 1e-9) {
                 LOG_DEBUG(logger, "  *** GLOBAL FAIRNESS IMPROVED! MaxCost: {} -> {} alpha: {}",
                           best_global_max_cost, max_cost, alpha);
                 best_global = neighbor;
                 best_global_max_cost = max_cost;
+                best_global_penalty = neighbor_penalty;
                 current = neighbor;
                 improved_in_nh = true;
                 tabu_list_moves.push_back(hash);

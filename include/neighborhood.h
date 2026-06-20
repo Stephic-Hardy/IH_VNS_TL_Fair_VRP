@@ -10,10 +10,11 @@ public:
 
     std::pair<RoutePack, std::unique_ptr<Move>> FindBestNeighbor(
         const RoutePack& sol, const InputData& input_data,
-        std::function<double(const RoutePack&)> penalty) const;
+        std::function<double(const std::vector<SolutionMetrics>&)>) const;
 
-    std::pair<RoutePack, std::unique_ptr<Move>> FindBestNeighbor(
-        const RoutePack& sol, const InputData& input_data, size_t route) const;
+    std::pair<RoutePack, std::unique_ptr<Move>> FindBestNeighbor(const RoutePack& sol,
+                                                                 const InputData& input_data,
+                                                                 size_t route) const;
 
 protected:
     virtual void VisitEachMove(const RoutePack& sol, size_t route,
@@ -136,12 +137,18 @@ protected:
 };
 
 class CrossExchangeNeighborhood : public Neighborhood {
+public:
+    CrossExchangeNeighborhood(size_t k);
+
 protected:
     void VisitEachMove(const RoutePack& sol,
                        std::function<void(const Move&)> evaluator) const override;
 
     void VisitEachMove(const RoutePack&, size_t, std::function<void(const Move&)>) const override {
     }
+
+private:
+    size_t k_;
 };
 
 class TwoOptStarNeighborhood : public Neighborhood {

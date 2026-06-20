@@ -28,9 +28,8 @@ public:
 
     virtual RoutePack Apply(const RoutePack& sol) const = 0;
 
-    virtual SolutionMetrics EvaluateDelta(const RoutePack& sol, const InputData& input,
-                                          std::vector<int>& buffer1,
-                                          std::vector<int>& buffer2) const = 0;
+    virtual RouteMetricsUpdate EvaluateDelta(const RoutePack& sol,
+                                             const InputData& input) const = 0;
 
     virtual TabuHash GetTabuHash() const = 0;
 
@@ -54,8 +53,7 @@ public:
 
     RoutePack Apply(const RoutePack& sol) const override;
 
-    SolutionMetrics EvaluateDelta(const RoutePack& sol, const InputData& input,
-                                  std::vector<int>& buffer, std::vector<int>&) const override;
+    RouteMetricsUpdate EvaluateDelta(const RoutePack& sol, const InputData& input) const override;
 
     TabuHash GetTabuHash() const override;
 
@@ -75,8 +73,7 @@ public:
 
     RoutePack Apply(const RoutePack& sol) const override;
 
-    SolutionMetrics EvaluateDelta(const RoutePack& sol, const InputData& input,
-                                  std::vector<int>& buffer, std::vector<int>&) const override;
+    RouteMetricsUpdate EvaluateDelta(const RoutePack& sol, const InputData& input) const override;
 
     TabuHash GetTabuHash() const override;
 
@@ -98,8 +95,7 @@ public:
 
     RoutePack Apply(const RoutePack& sol) const override;
 
-    SolutionMetrics EvaluateDelta(const RoutePack& sol, const InputData& input,
-                                  std::vector<int>& buffer, std::vector<int>&) const override;
+    RouteMetricsUpdate EvaluateDelta(const RoutePack& sol, const InputData& input) const override;
 
     TabuHash GetTabuHash() const override;
 
@@ -119,8 +115,7 @@ public:
 
     RoutePack Apply(const RoutePack& sol) const override;
 
-    SolutionMetrics EvaluateDelta(const RoutePack& sol, const InputData& input,
-                                  std::vector<int>& buffer, std::vector<int>&) const override;
+    RouteMetricsUpdate EvaluateDelta(const RoutePack& sol, const InputData& input) const override;
 
     TabuHash GetTabuHash() const override;
 
@@ -142,8 +137,7 @@ public:
 
     RoutePack Apply(const RoutePack& sol) const override;
 
-    SolutionMetrics EvaluateDelta(const RoutePack& sol, const InputData& input,
-                                  std::vector<int>& buffer, std::vector<int>&) const override;
+    RouteMetricsUpdate EvaluateDelta(const RoutePack& sol, const InputData& input) const override;
 
     TabuHash GetTabuHash() const override;
 
@@ -161,8 +155,7 @@ public:
 
     RoutePack Apply(const RoutePack& sol) const override;
 
-    SolutionMetrics EvaluateDelta(const RoutePack& sol, const InputData& input,
-                                  std::vector<int>& buffer, std::vector<int>&) const override;
+    RouteMetricsUpdate EvaluateDelta(const RoutePack& sol, const InputData& input) const override;
 
     TabuHash GetTabuHash() const override;
 
@@ -181,9 +174,7 @@ public:
 
     RoutePack Apply(const RoutePack& sol) const override;
 
-    SolutionMetrics EvaluateDelta(const RoutePack& sol, const InputData& input,
-                                  std::vector<int>& buffer1,
-                                  std::vector<int>& buffer2) const override;
+    RouteMetricsUpdate EvaluateDelta(const RoutePack& sol, const InputData& input) const override;
 
     TabuHash GetTabuHash() const override;
 
@@ -202,9 +193,7 @@ public:
 
     RoutePack Apply(const RoutePack& sol) const override;
 
-    SolutionMetrics EvaluateDelta(const RoutePack& sol, const InputData& input,
-                                  std::vector<int>& buffer1,
-                                  std::vector<int>& buffer2) const override;
+    RouteMetricsUpdate EvaluateDelta(const RoutePack& sol, const InputData& input) const override;
 
     TabuHash GetTabuHash() const override;
 
@@ -223,9 +212,7 @@ public:
 
     RoutePack Apply(const RoutePack& sol) const override;
 
-    SolutionMetrics EvaluateDelta(const RoutePack& sol, const InputData& input,
-                                  std::vector<int>& buffer1,
-                                  std::vector<int>& buffer2) const override;
+    RouteMetricsUpdate EvaluateDelta(const RoutePack& sol, const InputData& input) const override;
 
     TabuHash GetTabuHash() const override;
 

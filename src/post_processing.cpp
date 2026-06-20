@@ -14,8 +14,8 @@ namespace {
  */
 std::optional<RoutePack> Run2Opt(const RoutePack& baseline_tour, size_t route,
                                  const InputData& input_data) {
-    auto [neighbour, move] = TwoOptNeighborhood().
-        FindBestNeighbor(baseline_tour, input_data, route);
+    auto [neighbour, move] =
+        TwoOptNeighborhood().FindBestNeighbor(baseline_tour, input_data, route);
     if (move) {
         return neighbour;
     }
@@ -24,12 +24,13 @@ std::optional<RoutePack> Run2Opt(const RoutePack& baseline_tour, size_t route,
 
 /**
  * Tries to move vertex i to the place j
- * (might reduce the length of the path after removing self-intersection, although I'd rate this as unlikely)
+ * (might reduce the length of the path after removing self-intersection, although I'd rate this as
+ * unlikely)
  */
 std::optional<RoutePack> MoveVertex(const RoutePack& baseline_tour, size_t route,
                                     const InputData& input_data) {
-    auto [neighbour, move] = MoveVertexNeighborhood().FindBestNeighbor(
-        baseline_tour, input_data, route);
+    auto [neighbour, move] =
+        MoveVertexNeighborhood().FindBestNeighbor(baseline_tour, input_data, route);
     if (move) {
         return neighbour;
     }
@@ -44,14 +45,14 @@ std::optional<RoutePack> OptimizeKConsecutive(const RoutePack& baseline_tour, si
                                               const InputData& input_data) {
     static_assert(k > 1 && k < 10,
                   "It is highly recommended to use k less than 10 due to the algorithm complexity");
-    auto [neighbour, move] = ReorderBlockNeighborhood(k).
-        FindBestNeighbor(baseline_tour, input_data, route);
+    auto [neighbour, move] =
+        ReorderBlockNeighborhood(k).FindBestNeighbor(baseline_tour, input_data, route);
     if (move) {
         return neighbour;
     }
     return std::nullopt;
 }
-}
+}  // namespace
 
 RoutePack PostProcessSingleRoute(const RoutePack& initial_tour, size_t route,
                                  const InputData& input_data) {
@@ -105,8 +106,9 @@ void BalanceRoutes(RoutePack& routes, const InputData& input_data, double fairne
         double current_diff = dist_max - dist_min;
         double old_sum = dist_max + dist_min;
 
-        if (max_idx == min_idx || current_diff < 10.0)
+        if (max_idx == min_idx || current_diff < 10.0) {
             break;
+        }
 
         auto& r_max = routes.GetRoute(max_idx);
         auto& r_min = routes.GetRoute(min_idx);
@@ -120,22 +122,21 @@ void BalanceRoutes(RoutePack& routes, const InputData& input_data, double fairne
         for (size_t i = 1; i < r_max.Length(); ++i) {
             int v = r_max.Vertices()[i];
             Route temp_rmax = r_max;
-            temp_rmax.Update([ i](auto& vertices) {
-                vertices.erase(vertices.begin() + i);
-            });
+            temp_rmax.Update([i](auto& vertices) { vertices.erase(vertices.begin() + i); });
 
             double new_max_dist = temp_rmax.ComputeDistance(input_data);
 
             for (size_t j = 1; j <= r_min.Length(); ++j) {
                 Route temp_rmin = r_min;
-                temp_rmin.Update([ j, v](auto& vertices) {
-                    vertices.insert(vertices.begin() + j, v);
-                });
+                temp_rmin.Update(
+                    [j, v](auto& vertices) { vertices.insert(vertices.begin() + j, v); });
 
-                if (temp_rmin.Length() - 1 > input_data.max_load)
+                if (temp_rmin.Length() - 1 > input_data.max_load) {
                     continue;
-                if (temp_rmin.ComputeCost(input_data) > input_data.max_time)
+                }
+                if (temp_rmin.ComputeCost(input_data) > input_data.max_time) {
                     continue;
+                }
 
                 double new_min_dist = temp_rmin.ComputeDistance(input_data);
                 double new_diff = std::abs(new_max_dist - new_min_dist);
@@ -161,16 +162,13 @@ void BalanceRoutes(RoutePack& routes, const InputData& input_data, double fairne
                     Route temp_rmax = r_max;
                     Route temp_rmin = r_min;
 
-                    temp_rmax.Update([i, v_min](auto& vertices) {
-                        vertices[i] = v_min;
-                    });
-                    temp_rmin.Update([j, v_max](auto& vertices) {
-                        vertices[j] = v_max;
-                    });
+                    temp_rmax.Update([i, v_min](auto& vertices) { vertices[i] = v_min; });
+                    temp_rmin.Update([j, v_max](auto& vertices) { vertices[j] = v_max; });
 
                     if (temp_rmax.ComputeCost(input_data) > input_data.max_time ||
-                        temp_rmin.ComputeCost(input_data) > input_data.max_time)
+                        temp_rmin.ComputeCost(input_data) > input_data.max_time) {
                         continue;
+                    }
 
                     double n_max_d = temp_rmax.ComputeDistance(input_data);
                     double n_min_d = temp_rmin.ComputeDistance(input_data);
@@ -178,8 +176,7 @@ void BalanceRoutes(RoutePack& routes, const InputData& input_data, double fairne
                     double new_sum = n_max_d + n_min_d;
                     double sum_increase = std::max(0.0, new_sum - old_sum);
 
-                    if (new_diff < best_new_diff - 1.0 &&
-                        std::max(n_max_d, n_min_d) < dist_max &&
+                    if (new_diff < best_new_diff - 1.0 && std::max(n_max_d, n_min_d) < dist_max &&
                         (best_new_diff - new_diff) > (sum_increase * penalty_weight)) {
 
                         best_new_diff = new_diff;
